@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "polymind"
+version = "0.1.0"
+description = "PolyMind is a customizable collaborative multi-agent framework for collective intelligence and distributed problem solving."
+authors = ["Yx Jiang <2237303+yxjiang@users.noreply.github.com>"]
+license = "MIT License"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+
+[tool.poetry.group.dev.dependencies]
+black = "^24.2.0"
+isort = "^5.13.2"
+flake8 = "^7.0.0"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
