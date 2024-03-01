@@ -10,7 +10,7 @@ long_description = (repo / "README.md").read_text(encoding="utf-8")
 
 setup(
     name="polymind",
-    version="0.0.6",
+    version="0.0.7",
     packages=find_packages(),
     install_requires=requirements,
     author="Small Thinking",
@@ -21,7 +21,7 @@ setup(
     """,
     long_description=long_description,
     license="MIT",
-    python_requires=">=3.10",
+    python_requires=">=3.9",
     keywords="multi-agent, collective intelligence, problem solving, polymind",
     long_description_content_type="text/markdown",
     url="https://github.com/small-thinking/polymind",
