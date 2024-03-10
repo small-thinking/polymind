@@ -24,7 +24,7 @@ Polymind is designed around four key concepts: Tools, Tasks, Thought Processes, 
 
 * **Tasks**: Tasks are the specific jobs that an Agent is designed to perform. User typically describe their requirements in natural languages, and the thought process with convert them into tasks.
 
-* **Thought Processes**: Thought Processes define the logic that an Agent uses to decide which Tasks to perform and when. They are essentially the "brain" of the Agent.
+* **Thought Processes**: Thought Processes define the logic that an Agent uses to decide how to breakdown a requirement into tasks and decide which Tasks to perform and when. They are essentially the "brain" of the Agent.
 
 * **Agents**: Agents are the main actors in Polymind. They use their Tools, guided by their Thought Processes, to perform their Tasks. Each Agent can be customized to fit the specific needs of the user.
 
