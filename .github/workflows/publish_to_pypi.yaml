@@ -22,6 +22,10 @@ jobs:
         python -m pip install --upgrade pip
         pip install setuptools wheel twine
 
+    - name: Run Pytest
+      run: |
+        pytest tests/
+
     - name: Build package
       run: |
         python setup.py sdist bdist_wheel
