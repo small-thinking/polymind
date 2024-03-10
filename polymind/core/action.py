@@ -7,14 +7,14 @@ from typing import Dict, List
 
 class BaseAction(BaseModel, ABC):
     """BaseAction is the base class of the action.
-    An action is an object that can leverage tools (an LLM is considered a tool) to perform a specific task.
+    An action is a stateful object that can leverage tools (an LLM is considered a tool) to perform a specific task.
 
     In most cases, an action is a logically unit of to fulfill an atomic task.
     But sometimes, a complex atomic task can be divided into multiple sub-actions.
     """
 
     action_name: str
-    tools: Dict[str, BaseTool]
+    tool: BaseTool
 
     async def __call__(self, input: Message) -> Message:
         """Makes the instance callable, delegating to the execute method.
@@ -78,12 +78,13 @@ class CompositeAction(BaseAction, ABC):
         Returns:
             Message: The result of the composite action carried in a message.
         """
+        message = input
         self._update_context()
-        next_action = self._get_next_action(input)
-        while next_action:
-            message = await next_action(input)
+        action = self._get_next_action(message)
+        while action:
+            message = await action(message)
             self._update_context()
-            next_action = self._get_next_action(input)
+            action = self._get_next_action(message)
         return message
 
 
@@ -91,16 +92,15 @@ class SequentialAction(CompositeAction):
 
     actions: List[BaseAction] = Field(default_factory=list)
 
-    def __init__(
-        self, action_name: str, tools: Dict[str, BaseTool], actions: List[BaseAction]
-    ):
-        super().__init__(action_name=action_name, tools=tools)
+    def __init__(self, action_name: str, tool: BaseTool, actions: List[BaseAction]):
+        super().__init__(action_name=action_name, tool=tool)
         self.actions = actions
 
     def _update_context(self) -> None:
         if not bool(self.context.content):
             self.context = Message(content={"idx": 0})
-        self.context.content["idx"] += 1
+        else:
+            self.context.content["idx"] += 1
 
     def _get_next_action(self, input: Message) -> BaseAction:
         if self.context.content["idx"] < len(self.actions):
