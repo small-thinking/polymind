@@ -22,7 +22,7 @@ Polymind is designed around four key concepts: Tools, Tasks, Thought Processes, 
 
 * **Tools**: Tools are the basic building blocks that an Agent can use to perform its Tasks. They can be anything from a simple function to a complex machine learning model.
 
-* **Tasks**: Tasks are the specific jobs that an Agent is designed to perform. They are defined by the user and can be as simple or as complex as needed.
+* **Tasks**: Tasks are the specific jobs that an Agent is designed to perform. User typically describe their requirements in natural languages, and the thought process with convert them into tasks.
 
 * **Thought Processes**: Thought Processes define the logic that an Agent uses to decide which Tasks to perform and when. They are essentially the "brain" of the Agent.
 
