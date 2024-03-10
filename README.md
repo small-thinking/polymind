@@ -8,7 +8,6 @@ PolyMind is a cutting-edge multi-agent framework focused on leveraging collectiv
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
 
-
 ## Features
 
 - **Agent Collaboration**: Facilitate seamless interaction and collaboration among diverse agents.
@@ -16,6 +15,21 @@ PolyMind is a cutting-edge multi-agent framework focused on leveraging collectiv
 - **Domain Agnostic**: Suitable for a wide range of applications, from robotics to financial analysis.
 - **Extensible**: Open architecture allows for custom agent models and behaviors.
 - **Community-Driven**: Open-source and community-driven development ensures continuous improvement and inclusivity.
+
+## Polymind Design Principles
+
+Polymind is designed around four key concepts: Tools, Tasks, Thought Processes, and Agents. 
+
+* **Tools**: Tools are the basic building blocks that an Agent can use to perform its Tasks. They can be anything from a simple function to a complex machine learning model.
+
+* **Tasks**: Tasks are the specific jobs that an Agent is designed to perform. They are defined by the user and can be as simple or as complex as needed.
+
+* **Thought Processes**: Thought Processes define the logic that an Agent uses to decide which Tasks to perform and when. They are essentially the "brain" of the Agent.
+
+* **Agents**: Agents are the main actors in Polymind. They use their Tools, guided by their Thought Processes, to perform their Tasks. Each Agent can be customized to fit the specific needs of the user.
+
+The design of Polymind is meant to be neat and extensible,
+it only defines how an agent should process tasks at an abstract level, without set limitation on what tools to use or how to use them.
 
 ## Getting Started
 
