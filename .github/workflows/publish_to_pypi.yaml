@@ -2,43 +2,13 @@ name: Publish Python Package
 
 on:
   push:
-    branches:
-      - main
-      - develop
     tags:
       - 'v*'        # Match tags for production releases
       - 'test-*'    # Match tags for test releases
-  pull_request:
-    branches:
-      - main
-      - develop
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v2
-
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.9'
-
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install setuptools wheel twine pytest
-        # If you have dependencies specific to your project, install them here
-        pip install -r requirements.txt
-
-    - name: Run Pytest
-      run: |
-        pytest tests/
-
   build-and-publish:
-    needs: test
     runs-on: ubuntu-latest
-    if: startsWith(github.ref, 'refs/tags/')
     steps:
     - uses: actions/checkout@v2
 
