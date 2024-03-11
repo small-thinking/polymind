@@ -1,17 +1,23 @@
 # Local Development
 
-## Configure Test Pypi
-1. Add the Test PyPI Repository to Poetry:
+## Configure Test PyPI for Poetry
 
-You only need to do this once per machine. This step tells Poetry where the Test PyPI repository is located.
+For publishing packages to Test PyPI using Poetry during development, it is recommended to use an environment variable for the Test PyPI token. This avoids issues with keychain access on macOS and is generally simpler for automation and scripting.
+
+### Setting Up Environment Variable for Test PyPI Token
+
+1. **Export the Test PyPI API Token**:
+
+Export your Test PyPI token as an environment variable in your terminal session before running the publish command.
+
 ```bash
-poetry config repositories.testpypi https://test.pypi.org/legacy/
+export POETRY_TEST_PYPI_API_TOKEN=<your_test_pypi_token>
 ```
 
-2. Set the Test PyPI API Token:
+2. **Run the local publish command**:
 
-Replace <your_test_pypi_token> with your actual Test PyPI token. This token is used for authentication when publishing packages to Test PyPI.
+In the project root folder.
 
 ```bash
-poetry config http-basic.testpypi __token__ <your_test_pypi_token>
+./tests/build_test_pypi.sh
 ```
