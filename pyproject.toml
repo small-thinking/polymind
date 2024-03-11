@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "polymind"
-version = "0.0.11"  # Update this version before publishing to PyPI
+version = "0.0.12"  # Update this version before publishing to PyPI
 description = "PolyMind is a customizable collaborative multi-agent framework for collective intelligence and distributed problem solving."
 authors = ["Yx Jiang <2237303+yxjiang@users.noreply.github.com>"]
 license = "MIT License"
@@ -8,7 +8,7 @@ readme = "README.md"
 
 [tool.poetry.dependencies]
 python = "~3.9"
-numpy = "1.26"
+numpy = "1.26.0"
 qdrant-client = "1.7.0"
 pydantic = "^2.6.3"
 
