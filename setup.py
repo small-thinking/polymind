@@ -10,7 +10,7 @@ long_description = (repo / "README.md").read_text(encoding="utf-8")
 
 setup(
     name="polymind",
-    version="0.0.7",
+    version="0.0.8",
     packages=find_packages(),
     install_requires=requirements,
     author="Small Thinking",
