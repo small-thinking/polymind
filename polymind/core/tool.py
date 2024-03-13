@@ -1,6 +1,7 @@
-from pydantic import BaseModel
 from abc import ABC, abstractmethod
+from dotenv import load_dotenv
 from polymind.core.message import Message
+from pydantic import BaseModel
 
 
 class BaseTool(BaseModel, ABC):
@@ -11,6 +12,10 @@ class BaseTool(BaseModel, ABC):
     """
 
     tool_name: str
+
+    def __init__(self, **data):
+        super().__init__(**data)
+        load_dotenv(override=True)
 
     def __str__(self):
         return self.tool_name
