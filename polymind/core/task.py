@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from polymind.core.message import Message
 from polymind.core.tool import BaseTool
 from typing import Dict, List
+from dotenv import load_dotenv
 
 
 class BaseTask(BaseModel, ABC):
@@ -15,6 +16,10 @@ class BaseTask(BaseModel, ABC):
 
     task_name: str
     tool: BaseTool
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        load_dotenv(override=True)
 
     async def __call__(self, input: Message) -> Message:
         """Makes the instance callable, delegating to the execute method.
