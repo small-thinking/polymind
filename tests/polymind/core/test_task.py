@@ -6,7 +6,7 @@ import os
 import pytest
 from polymind.core.task import BaseTask, SequentialTask
 from polymind.core.message import Message
-from polymind.core.tool import BaseTool
+from polymind.core.tool import BaseTool, Param
 
 
 @pytest.fixture(autouse=True)
@@ -21,6 +21,13 @@ def load_env_vars():
 
 
 class MockTool(BaseTool):
+
+    def input_spec(self) -> list[Param]:
+        return [Param(name="query", type="str", description="The query to reverse")]
+
+    def output_spec(self) -> list[Param]:
+        return [Param(name="result", type="str", description="The reversed query")]
+
     async def _execute(self, input: Message) -> Message:
         # Get the environment variable or use a default value
         some_variable = os.getenv("SOME_TOOL_VARIABLE", "default_value")
