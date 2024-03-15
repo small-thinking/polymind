@@ -9,9 +9,15 @@ from typing import List, Tuple
 class Param(BaseModel):
     """Param is used to describe the specification of a parameter for a tool."""
 
-    name: str
-    type: str = Field(...)
-    description: str
+    name: str = Field(description="The name of the parameter.")
+    type: str = Field(
+        description="The type of the parameter: str, int, float, Dict[KeyType, ValueType], or List[ElementType]."
+    )
+    description: str = Field(description="A description of the parameter.")
+    example: str = Field(default="", description="An example value for the parameter.")
+
+    def __str__(self) -> str:
+        return f"{self.name}: {self.type} - {self.description}"
 
     @validator("type")
     def check_type(cls, v: str) -> str:
@@ -58,13 +64,20 @@ class BaseTool(BaseModel, ABC):
         """
         return await self._execute(input)
 
-    def get_spec(self) -> Tuple[List[Param], List[Param]]:
+    def get_spec(self) -> str:
         """Return the input and output specification of the tool.
 
         Returns:
             Tuple[List[Param], List[Param]]: The input and output specification of the tool.
         """
-        return self.input_spec(), self.output_spec()
+        input_json_str = ""
+        for param in self.input_spec():
+            input_json_str += f"{param}\n"
+        output_json_str = ""
+        for param in self.output_spec():
+            output_json_str += f"{param}\n"
+        spec_json_str = f"Input:\n{input_json_str}\nOutput:\n{output_json_str}"
+        return spec_json_str
 
     @abstractmethod
     def input_spec(self) -> List[Param]:
