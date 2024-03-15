@@ -3,8 +3,11 @@ Run the test with the following command:
     poetry run pytest tests/polymind/tools/test_oai_tools.py
 """
 
-import pytest
+import json
 from unittest.mock import AsyncMock, patch
+
+import pytest
+
 from polymind.core.message import Message
 from polymind.tools.oai_tools import OpenAIChatTool
 
@@ -55,20 +58,31 @@ class TestOpenAIChatTool:
 
     def test_get_spec(self, tool):
         """Test get_spec method of OpenAIChatTool."""
-        input_spec = tool.get_spec()[0]
-        output_spec = tool.get_spec()[1]
-
-        assert len(input_spec) == 2
-        assert input_spec[0].name == "prompt"
-        assert input_spec[0].type == "str"
-        assert input_spec[0].description == "The prompt for the chat."
-
-        assert len(input_spec) == 2
-        assert input_spec[1].name == "system_prompt"
-        assert input_spec[1].type == "str"
-        assert input_spec[1].description == "The system prompt for the chat."
-
-        assert len(output_spec) == 1
-        assert output_spec[0].name == "response"
-        assert output_spec[0].type == "str"
-        assert output_spec[0].description == "The response from the chat."
+        spec_str = tool.get_spec()
+        expected_json_str = """{
+        "input_message": [
+            {
+                "name": "system_prompt",
+                "type": "str",
+                "description": "The system prompt for the chat.",
+                "example": "You are a helpful AI assistant."
+            },
+            {
+                "name": "prompt",
+                "type": "str",
+                "description": "The prompt for the chat.",
+                "example": "hello, how are you?"
+            }
+        ],
+        "output_message": [
+            {
+                "name": "response",
+                "type": "str",
+                "description": "The response from the chat.",
+                "example": "I'm good, how are you?"
+            }
+        ]
+        }"""
+        assert json.loads(spec_str) == json.loads(
+            expected_json_str
+        ), "The spec string should match the expected JSON string"

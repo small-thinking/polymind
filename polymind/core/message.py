@@ -1,5 +1,6 @@
-from pydantic import BaseModel, field_validator
 from typing import Any, Dict
+
+from pydantic import BaseModel, field_validator
 
 
 class Message(BaseModel):

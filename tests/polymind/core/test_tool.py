@@ -2,12 +2,14 @@
     poetry run pytest tests/polymind/core/test_tool.py
 """
 
-import os
-import pytest
-from polymind.core.tool import BaseTool, Param
-from polymind.core.message import Message
-from pydantic import ValidationError
 import json
+import os
+
+import pytest
+from pydantic import ValidationError
+
+from polymind.core.message import Message
+from polymind.core.tool import BaseTool, Param
 
 
 class TestParam:
