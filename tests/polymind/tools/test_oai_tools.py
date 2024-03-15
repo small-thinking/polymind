@@ -1,3 +1,8 @@
+"""Tests for OpenAIChatTool.
+Run the test with the following command:
+    poetry run pytest tests/polymind/tools/test_oai_tools.py
+"""
+
 import pytest
 from unittest.mock import AsyncMock, patch
 from polymind.core.message import Message

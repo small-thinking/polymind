@@ -10,6 +10,13 @@ from pydantic import ValidationError
 
 
 class ToolForTest(BaseTool):
+
+    def input_spec(self) -> list[Param]:
+        return [Param(name="query", type="str", description="The query to reverse")]
+
+    def output_spec(self) -> list[Param]:
+        return [Param(name="result", type="str", description="The reversed query")]
+
     async def _execute(self, input: Message) -> Message:
         """Reverse the prompt and return the result.
 
