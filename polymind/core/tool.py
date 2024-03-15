@@ -3,7 +3,8 @@ from dotenv import load_dotenv
 from polymind.core.message import Message
 from pydantic import BaseModel, validator, Field
 import re
-from typing import List, Tuple
+from typing import Dict, List
+import json
 
 
 class Param(BaseModel):
@@ -16,8 +17,16 @@ class Param(BaseModel):
     description: str = Field(description="A description of the parameter.")
     example: str = Field(default="", description="An example value for the parameter.")
 
+    def to_json_obj(self) -> Dict[str, str]:
+        return {
+            "name": self.name,
+            "type": self.type,
+            "description": self.description,
+            "example": self.example,
+        }
+
     def __str__(self) -> str:
-        return f"{self.name}: {self.type} - {self.description}"
+        return json.dumps(self.to_json_obj(), indent=4)
 
     @validator("type")
     def check_type(cls, v: str) -> str:
@@ -70,14 +79,17 @@ class BaseTool(BaseModel, ABC):
         Returns:
             Tuple[List[Param], List[Param]]: The input and output specification of the tool.
         """
-        input_json_str = ""
+        input_json_obj = []
         for param in self.input_spec():
-            input_json_str += f"{param}\n"
-        output_json_str = ""
+            input_json_obj.append(param.to_json_obj())
+        output_json_obj = []
         for param in self.output_spec():
-            output_json_str += f"{param}\n"
-        spec_json_str = f"Input:\n{input_json_str}\nOutput:\n{output_json_str}"
-        return spec_json_str
+            output_json_obj.append(param.to_json_obj())
+        spec_json_obj = {
+            "input_message": input_json_obj,
+            "output_message": output_json_obj,
+        }
+        return json.dumps(spec_json_obj, indent=4)
 
     @abstractmethod
     def input_spec(self) -> List[Param]:
