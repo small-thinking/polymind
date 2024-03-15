@@ -2,8 +2,9 @@
 This file contains the necessary tools of using OpenAI models.
 """
 
+from typing import List
 from pydantic import Field
-from polymind.core.tool import BaseTool
+from polymind.core.tool import BaseTool, Param
 from polymind.core.message import Message
 from openai import AsyncOpenAI
 import os
@@ -31,6 +32,35 @@ class OpenAIChatTool(BaseTool):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.client = AsyncOpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+
+    def input_spec(self) -> List[Param]:
+        """Return the input specification of the tool.
+        The derived class must implement this method to define the input specification of the tool.
+
+        Returns:
+            List[Param]: The input specification of the tool.
+        """
+        return [
+            Param(name="prompt", type="str", description="The prompt for the chat."),
+            Param(
+                name="system_prompt",
+                type="str",
+                description="The system prompt for the chat.",
+            ),
+        ]
+
+    def output_spec(self) -> List[Param]:
+        """Return the output specification of the tool.
+        The derived class must implement this method to define the output specification of the tool.
+
+        Returns:
+            List[Param]: The output specification of the tool.
+        """
+        return [
+            Param(
+                name="response", type="str", description="The response from the chat."
+            ),
+        ]
 
     async def _execute(self, input: Message) -> Message:
         """Execute the tool and return the result.
