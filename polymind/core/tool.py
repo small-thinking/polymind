@@ -1,17 +1,34 @@
-from abc import ABC, abstractmethod
-from dotenv import load_dotenv
-from polymind.core.message import Message
-from pydantic import BaseModel, validator, Field
+import json
 import re
-from typing import List, Tuple
+from abc import ABC, abstractmethod
+from typing import Dict, List
+
+from dotenv import load_dotenv
+from pydantic import BaseModel, Field, validator
+
+from polymind.core.message import Message
 
 
 class Param(BaseModel):
     """Param is used to describe the specification of a parameter for a tool."""
 
-    name: str
-    type: str = Field(...)
-    description: str
+    name: str = Field(description="The name of the parameter.")
+    type: str = Field(
+        description="The type of the parameter: str, int, float, Dict[KeyType, ValueType], or List[ElementType]."
+    )
+    description: str = Field(description="A description of the parameter.")
+    example: str = Field(default="", description="An example value for the parameter.")
+
+    def to_json_obj(self) -> Dict[str, str]:
+        return {
+            "name": self.name,
+            "type": self.type,
+            "description": self.description,
+            "example": self.example,
+        }
+
+    def __str__(self) -> str:
+        return json.dumps(self.to_json_obj(), indent=4)
 
     @validator("type")
     def check_type(cls, v: str) -> str:
@@ -58,13 +75,23 @@ class BaseTool(BaseModel, ABC):
         """
         return await self._execute(input)
 
-    def get_spec(self) -> Tuple[List[Param], List[Param]]:
+    def get_spec(self) -> str:
         """Return the input and output specification of the tool.
 
         Returns:
             Tuple[List[Param], List[Param]]: The input and output specification of the tool.
         """
-        return self.input_spec(), self.output_spec()
+        input_json_obj = []
+        for param in self.input_spec():
+            input_json_obj.append(param.to_json_obj())
+        output_json_obj = []
+        for param in self.output_spec():
+            output_json_obj.append(param.to_json_obj())
+        spec_json_obj = {
+            "input_message": input_json_obj,
+            "output_message": output_json_obj,
+        }
+        return json.dumps(spec_json_obj, indent=4)
 
     @abstractmethod
     def input_spec(self) -> List[Param]:

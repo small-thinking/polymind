@@ -1,8 +1,10 @@
-from pydantic import BaseModel, Field
+from abc import ABC, abstractmethod
+from typing import Dict, Optional
+
+from pydantic import BaseModel
+
 from polymind.core.message import Message
 from polymind.core.tool import BaseTool
-from abc import ABC, abstractmethod
-from typing import Dict, Optional, TYPE_CHECKING
 
 
 class ThoughtProcess(BaseModel, ABC):
@@ -20,7 +22,8 @@ class ThoughtProcess(BaseModel, ABC):
 
     async def __call__(self, input: Message, agent: "Agent") -> Message:
         """Makes the instance callable, delegating to the execute method.
-        This allows the instance to be used as a callable object, simplifying the syntax for executing the thought process.
+        This allows the instance to be used as a callable object, simplifying
+        the syntax for executing the thought process.
 
         Args:
             input (Message): The input message to the thought process.

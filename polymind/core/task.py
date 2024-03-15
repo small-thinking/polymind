@@ -1,9 +1,11 @@
-from pydantic import BaseModel, Field
 from abc import ABC, abstractmethod
+from typing import List
+
+from dotenv import load_dotenv
+from pydantic import BaseModel, Field
+
 from polymind.core.message import Message
 from polymind.core.tool import BaseTool
-from typing import Dict, List
-from dotenv import load_dotenv
 
 
 class BaseTask(BaseModel, ABC):

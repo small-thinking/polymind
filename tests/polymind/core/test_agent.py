@@ -3,10 +3,10 @@ Run the test with the following command:
     poetry run pytest tests/polymind/core/test_thought_process.py
 """
 
-from pydantic import BaseModel
 import pytest
-from polymind.core.message import Message
+
 from polymind.core.agent import Agent, ThoughtProcess
+from polymind.core.message import Message
 
 
 class MockThoughtProcess(ThoughtProcess):

@@ -33,6 +33,12 @@ jobs:
     - name: Install pytest
       run: |
         pip install pytest
+
+    - name: Run Flake8
+      run: poetry run flake8 polymind/
+
+    - name: Run isort
+      run: poetry run isort --check-only .
     
     - name: Run Pytest
       run: poetry run pytest

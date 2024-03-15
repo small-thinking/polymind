@@ -2,13 +2,14 @@
 This file contains the necessary tools of using OpenAI models.
 """
 
-from typing import List
-from pydantic import Field
-from polymind.core.tool import BaseTool, Param
-from polymind.core.message import Message
-from openai import AsyncOpenAI
 import os
-from dotenv import load_dotenv
+from typing import List
+
+from openai import AsyncOpenAI
+from pydantic import Field
+
+from polymind.core.message import Message
+from polymind.core.tool import BaseTool, Param
 
 
 class OpenAIChatTool(BaseTool):
@@ -41,11 +42,17 @@ class OpenAIChatTool(BaseTool):
             List[Param]: The input specification of the tool.
         """
         return [
-            Param(name="prompt", type="str", description="The prompt for the chat."),
             Param(
                 name="system_prompt",
                 type="str",
+                example="You are a helpful AI assistant.",
                 description="The system prompt for the chat.",
+            ),
+            Param(
+                name="prompt",
+                type="str",
+                example="hello, how are you?",
+                description="The prompt for the chat.",
             ),
         ]
 
@@ -58,7 +65,10 @@ class OpenAIChatTool(BaseTool):
         """
         return [
             Param(
-                name="response", type="str", description="The response from the chat."
+                name="response",
+                type="str",
+                example="I'm good, how are you?",
+                description="The response from the chat.",
             ),
         ]
 

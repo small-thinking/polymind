@@ -3,9 +3,11 @@
 """
 
 import os
+
 import pytest
-from polymind.core.task import BaseTask, SequentialTask
+
 from polymind.core.message import Message
+from polymind.core.task import BaseTask, SequentialTask
 from polymind.core.tool import BaseTool, Param
 
 
