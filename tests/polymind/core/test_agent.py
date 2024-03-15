@@ -4,7 +4,6 @@ Run the test with the following command:
 """
 
 import pytest
-from pydantic import BaseModel
 
 from polymind.core.agent import Agent, ThoughtProcess
 from polymind.core.message import Message

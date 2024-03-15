@@ -1,3 +1,4 @@
+# noqa: D104
 # Expose the core classes
 from .core.agent import Agent, ThoughtProcess
 from .core.message import Message
