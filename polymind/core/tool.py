@@ -13,8 +13,8 @@ class BaseTool(BaseModel, ABC):
 
     tool_name: str
 
-    def __init__(self, **data):
-        super().__init__(**data)
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
         load_dotenv(override=True)
 
     def __str__(self):
