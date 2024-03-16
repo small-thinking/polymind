@@ -20,9 +20,9 @@ class OpenAIChatTool(BaseTool):
     The tool will return a message with the response from the OpenAI chat API.
     """
 
-    class Config:
-        arbitrary_types_allowed: bool = True  # Allow arbitrary types
-
+    model_config = {
+        "arbitrary_types_allowed": True,  # Allow arbitrary types
+    }
     tool_name: str = "open-ai-chat"
     client: AsyncOpenAI = Field(default=None)
     llm_name: str = Field(default="gpt-3.5-turbo")
