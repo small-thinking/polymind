@@ -1,7 +1,7 @@
 """Web service tool is a very generic tool that can be used to call any web service.
 """
 
-from typing import Any, Dict, List
+from typing import List
 
 import aiohttp
 
@@ -35,7 +35,9 @@ class RestAPITool(BaseTool):
             Param(
                 name="body",
                 type="Union[Dict[str, Any], str]",
-                description="The body of the request for POST/PUT methods. Can be a dictionary for JSON or a string for form-encoded data.",
+                description="""The body of the request for POST/PUT methods.
+                Can be a dictionary for JSON or a string for form-encoded data.
+                """,
                 example='{"key": "value"}',
             ),
             Param(
@@ -91,4 +93,6 @@ class RestAPITool(BaseTool):
                 except Exception:
                     response_data = await response.text()
 
-                return Message(content={"status_code": status_code, "response": response_data})
+                return Message(
+                    content={"status_code": status_code, "response": response_data}
+                )
