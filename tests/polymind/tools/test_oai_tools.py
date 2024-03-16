@@ -33,17 +33,11 @@ class TestOpenAIChatTool:
         expected_response_content = "I'm doing great, thanks for asking!"
 
         # Patch the specific instance of AsyncOpenAI used by our tool instance
-        with patch.object(
-            tool.client.chat.completions, "create", new_callable=AsyncMock
-        ) as mock_create:
+        with patch.object(tool.client.chat.completions, "create", new_callable=AsyncMock) as mock_create:
             mock_create.return_value = AsyncMock(
-                choices=[
-                    AsyncMock(message=AsyncMock(content=expected_response_content))
-                ]
+                choices=[AsyncMock(message=AsyncMock(content=expected_response_content))]
             )
-            input_message = Message(
-                content={"prompt": prompt, "system_prompt": system_prompt}
-            )
+            input_message = Message(content={"prompt": prompt, "system_prompt": system_prompt})
             response_message = await tool._execute(input_message)
 
         assert response_message.content["response"] == expected_response_content

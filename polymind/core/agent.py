@@ -78,8 +78,6 @@ class Agent(BaseModel):
             Message: The output message from the agent.
         """
         if not self.thought_process:
-            raise ValueError(
-                "The thought process of the agent needs to be hooked first."
-            )
+            raise ValueError("The thought process of the agent needs to be hooked first.")
         self._input_preprocess(input, self)
         return await self.thought_process(input)

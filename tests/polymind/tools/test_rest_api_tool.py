@@ -54,23 +54,17 @@ class TestRestAPITool:
             )
 
             actual_output = await rest_api_tool(input_message)
-            assert (
-                actual_output.content["status_code"] == 200
-            ), "Expected HTTP status code 200"
+            assert actual_output.content["status_code"] == 200, "Expected HTTP status code 200"
             assert (
                 actual_output.content["response"]["message"] == "Query successful"
             ), "Expected success message in response"
-            assert (
-                "articles" in actual_output.content["response"]
-            ), "Expected articles in response"
+            assert "articles" in actual_output.content["response"], "Expected articles in response"
 
     @pytest.mark.asyncio
     async def test_query_articles_http_error(self, rest_api_tool):
         with aioresponses() as m:
             # Simulate an HTTP error response
-            m.post(
-                "https://wenling-production.up.railway.app/query-article/", status=500
-            )
+            m.post("https://wenling-production.up.railway.app/query-article/", status=500)
 
             input_message = Message(
                 content={
@@ -82,9 +76,7 @@ class TestRestAPITool:
             )
 
             actual_output = await rest_api_tool(input_message)
-            assert (
-                actual_output.content["status_code"] == 500
-            ), "Expected HTTP status code 500"
+            assert actual_output.content["status_code"] == 500, "Expected HTTP status code 500"
 
     @pytest.mark.asyncio
     async def test_query_articles_bad_request(self, rest_api_tool):
@@ -106,12 +98,8 @@ class TestRestAPITool:
             )
 
             actual_output = await rest_api_tool(input_message)
-            assert (
-                actual_output.content["status_code"] == 400
-            ), "Expected HTTP status code 400"
-            assert actual_output.content["response"] == {
-                "error": "Bad request"
-            }, "Expected error message in response"
+            assert actual_output.content["status_code"] == 400, "Expected HTTP status code 400"
+            assert actual_output.content["response"] == {"error": "Bad request"}, "Expected error message in response"
 
     @pytest.mark.asyncio
     async def test_missing_start_date(self, rest_api_tool):
@@ -140,13 +128,8 @@ class TestRestAPITool:
             )
 
             actual_output = await rest_api_tool(input_message)
+            assert actual_output.content["status_code"] == 400, "Expected HTTP status code 400 for missing start_date"
+            assert "error" in actual_output.content["response"], "Expected error message in response"
             assert (
-                actual_output.content["status_code"] == 400
-            ), "Expected HTTP status code 400 for missing start_date"
-            assert (
-                "error" in actual_output.content["response"]
-            ), "Expected error message in response"
-            assert (
-                actual_output.content["response"]["error"]
-                == "Missing required field: start_date"
+                actual_output.content["response"]["error"] == "Missing required field: start_date"
             ), "Expected specific error message for missing start_date"

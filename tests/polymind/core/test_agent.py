@@ -48,6 +48,4 @@ class TestMockThoughtProcess:
         with pytest.raises(ValueError) as exc_info:
             await agent(input_message)
 
-        assert "thought process of the agent needs to be hooked first" in str(
-            exc_info.value
-        )
+        assert "thought process of the agent needs to be hooked first" in str(exc_info.value)
