@@ -16,12 +16,12 @@ class BaseTask(BaseModel, ABC):
     But sometimes, a complex task can be divided into multiple sub-tasks.
     """
 
-    task_name: str
-    tool: BaseTool
+    task_name: str = Field(description="The name of the task.")
+    tool: BaseTool = Field(description="The tool to use for the task.")
 
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
+    def __init__(self, task_name: str, tool: BaseTool, **kwargs):
         load_dotenv(override=True)
+        super().__init__(task_name=task_name, tool=tool, **kwargs)
 
     async def __call__(self, input: Message) -> Message:
         """Makes the instance callable, delegating to the execute method.
