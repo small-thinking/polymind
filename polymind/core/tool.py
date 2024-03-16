@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, List
 
 from dotenv import load_dotenv
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator
 
 from polymind.core.message import Message
 
@@ -30,7 +30,7 @@ class Param(BaseModel):
     def __str__(self) -> str:
         return json.dumps(self.to_json_obj(), indent=4)
 
-    @validator("type")
+    @field_validator("type")
     def check_type(cls, v: str) -> str:
         allowed_simple_types = ["str", "int", "float"]
         if v in allowed_simple_types:
