@@ -1,0 +1,63 @@
+"""Indexer is used to index both the information and the learned tools.
+"""
+
+from abc import ABC, abstractmethod
+from typing import Any, List
+
+from pydantic import Field
+
+from polymind.core.tool import BaseTool, Param
+
+
+class Indexer(BaseTool, ABC):
+    """Indexer itself is a tool, it is used to index both the information and the learned tools."""
+
+    tool_name: str = "indexer"
+    index_path: str = Field(
+        default="index", description="The path to the index folder."
+    )
+
+    # For one piece of information, we can multi-index it with different descriptions.
+    # This can help to improve the recall during retrieval.
+    descriptions_key: str = Field(
+        default="keywords", description="The keywords to index a piece of information."
+    )
+    content_key: str = Field(default="content", description="The content to index.")
+
+    def input_spec(self) -> List[Param]:
+        return [
+            Param(
+                name="descriptions",
+                type="List[str]",
+                description="The descriptions to index the content.",
+                example=[
+                    "The tool to help find external knowledge",
+                    "The search engine tool",
+                ],
+            ),
+            Param(
+                name="content",
+                type="Any",
+                description="The content to be indexed.",
+                example="The append() method adds an item to the end of the list.",
+            ),
+        ]
+
+    def output_spec(self) -> List[Param]:
+        return [
+            Param(
+                name="status",
+                type="str",
+                description="The status of the indexing operation.",
+                example="success",
+            ),
+        ]
+
+    @abstractmethod
+    def _embedding(self, description_list: List[str]) -> Any:
+        """Generate the embedding for the descriptions. One embedding for each description.
+
+        Args:
+            description_list: The list of descriptions to be embedded.
+        """
+        pass
