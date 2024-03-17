@@ -1,5 +1,6 @@
 """
 This file contains the necessary tools of using OpenAI models.
+For now, it contains two tools: OpenAIChatTool and OpenAIEmbeddingTool.
 """
 
 import os
@@ -27,6 +28,13 @@ class OpenAIChatTool(BaseTool):
         "arbitrary_types_allowed": True,  # Allow arbitrary types
     }
     tool_name: str = "open-ai-chat"
+    descriptions: List[str] = [
+        "This tool is used to chat with OpenAI's language models.",
+        "This tool can be used as the orchestrator to control the conversation and problem solving.",
+        "This tool can be used to breakdown the problem into smaller parts and solve them.",
+        "This tool can be used to generate the response from the chat.",
+        "This tool can be used to generate the code of new tools.",
+    ]
     client: AsyncOpenAI = Field(default=None)
     llm_name: str = Field(default="gpt-3.5-turbo")
     system_prompt: str = Field(default="You are a helpful AI assistant.")
@@ -112,6 +120,15 @@ class OpenAIEmbeddingTool(Embedder):
     """
 
     tool_name: str = "openai-embedding"
+
+    descriptions: List[str] = [
+        "This tool is used to generate the embedding for the input.",
+        "This tool is used to quantify the semantic meaning of the input.",
+        "This tool can be used to generate the embedding for the input using OpenAI embedding.",
+        "This tool can be used to generate the embedding for the input using OpenAI's text-embedding-3-small model.",
+        "This tool can be used to generate the embedding for the input using OpenAI's text-embedding-3-large model.",
+    ]
+
     url: str = "https://api.openai.com/v1/embeddings"
     embedding_model: str = Field(
         default="text-embedding-3-small",

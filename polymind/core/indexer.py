@@ -6,6 +6,7 @@ from typing import Any, List
 
 from pydantic import Field
 
+from polymind.core.embedder import Embedder
 from polymind.core.tool import BaseTool, Param
 
 
@@ -15,6 +16,9 @@ class Indexer(BaseTool, ABC):
     tool_name: str = "indexer"
     index_path: str = Field(
         default="index", description="The path to the index folder."
+    )
+    embedder: Embedder = Field(
+        description="The embedder to generate the embedding for the descriptions."
     )
 
     # For one piece of information, we can multi-index it with different descriptions.

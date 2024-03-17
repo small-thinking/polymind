@@ -55,6 +55,14 @@ class BaseTool(BaseModel, ABC):
     """
 
     tool_name: str
+    descriptions: List[str] = Field(
+        ...,
+        description="""The descriptions of the tool. The descriptions will be
+        converted to embeddings and used to index the tool. One good practice is to
+        describe the tools with the following aspects: what the tool does, and describe
+        the tools from different perspectives.
+        """,
+    )
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -62,6 +70,17 @@ class BaseTool(BaseModel, ABC):
 
     def __str__(self):
         return self.tool_name
+
+    @field_validator("descriptions")
+    def check_description(cls, v: List[str]) -> List[str]:
+        if len(v) < 3:
+            raise ValueError(
+                "The descriptions must have at least 3 items. The more the better."
+            )
+        return v
+
+    def get_description(self) -> List[str]:
+        return self.descriptions
 
     async def __call__(self, input: Message) -> Message:
         """Makes the instance callable, delegating to the execute method.
