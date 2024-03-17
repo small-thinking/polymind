@@ -100,6 +100,4 @@ class RestAPITool(BaseTool):
                 except Exception:
                     response_data = await response.text()
 
-                return Message(
-                    content={"status_code": status_code, "response": response_data}
-                )
+                return Message(content={"status_code": status_code, "response": response_data})

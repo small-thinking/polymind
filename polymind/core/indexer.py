@@ -2,7 +2,7 @@
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, List
+from typing import List
 
 from pydantic import Field
 
@@ -28,8 +28,14 @@ class Indexer(BaseTool, ABC):
     )
     content_key: str = Field(default="content", description="The content to index.")
 
+    @abstractmethod
+    def _extra_input_spec(self) -> List[Param]:
+        """The extra input specification for the indexer."""
+        pass
+
     def input_spec(self) -> List[Param]:
-        return [
+        input_params = self._extra_input_spec()
+        input_params.append(
             Param(
                 name="descriptions",
                 type="List[str]",
@@ -38,14 +44,8 @@ class Indexer(BaseTool, ABC):
                     "The tool to help find external knowledge",
                     "The search engine tool",
                 ],
-            ),
-            Param(
-                name="content",
-                type="Any",
-                description="The content to be indexed.",
-                example="The append() method adds an item to the end of the list.",
-            ),
-        ]
+            )
+        )
 
     def output_spec(self) -> List[Param]:
         return [
@@ -56,12 +56,3 @@ class Indexer(BaseTool, ABC):
                 example="success",
             ),
         ]
-
-    @abstractmethod
-    def _embedding(self, description_list: List[str]) -> Any:
-        """Generate the embedding for the descriptions. One embedding for each description.
-
-        Args:
-            description_list: The list of descriptions to be embedded.
-        """
-        pass

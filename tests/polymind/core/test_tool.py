@@ -24,9 +24,7 @@ class TestParam:
             example="example value",
         )
         assert param.type == type_str, "Param type should be {}".format(type_str)
-        assert (
-            param.example == "example value"
-        ), "Param example should match the provided example"
+        assert param.example == "example value", "Param example should match the provided example"
 
     @pytest.mark.parametrize(
         "type_str, example",
@@ -41,9 +39,7 @@ class TestParam:
             example=example,
         )
         assert param.type == type_str, "Param type should be {}".format(type_str)
-        assert (
-            param.example == example
-        ), "Param example should match the provided example"
+        assert param.example == example, "Param example should match the provided example"
 
     @pytest.mark.parametrize(
         "type_str",
@@ -69,12 +65,8 @@ class TestParam:
         """Test that Param correctly stores a description and uses the default example if not specified."""
         description = "This parameter is for testing."
         param = Param(name="test_param", type="str", description=description)
-        assert (
-            param.description == description
-        ), "Param description should match the input description"
-        assert (
-            param.example == ""
-        ), "Param example should use the default empty string if not specified"
+        assert param.description == description, "Param description should match the input description"
+        assert param.example == "", "Param example should use the default empty string if not specified"
 
 
 # Test tools that fails the validation
@@ -219,27 +211,17 @@ class TestBaseTool:
         tool = ToolForTest(tool_name="test_tool")
         input_message = Message(content={"query": "test", "query2": "hello"})
         result_message = await tool(input_message)
-        assert (
-            result_message.get("result") == "tset"
-        ), "The result should be the reverse of the input query"
-        assert (
-            result_message.get("result2") == "olleh"
-        ), "The result should be the reverse of the input query2"
+        assert result_message.get("result") == "tset", "The result should be the reverse of the input query"
+        assert result_message.get("result2") == "olleh", "The result should be the reverse of the input query2"
 
     @pytest.mark.asyncio
     async def test_tool_execute_with_env(self):
         tool = ToolForTest(tool_name="test_tool")
         input_message = Message(content={"query": "test", "query2": "hello"})
         result_message = await tool(input_message)
-        assert (
-            result_message.get("result") == "tset"
-        ), "The result should be the reverse of the input query"
-        assert (
-            result_message.get("result2") == "olleh"
-        ), "The result should be the reverse of the input query2"
-        assert (
-            result_message.get("env") == "test_value"
-        ), "The environment variable should be loaded correctly"
+        assert result_message.get("result") == "tset", "The result should be the reverse of the input query"
+        assert result_message.get("result2") == "olleh", "The result should be the reverse of the input query2"
+        assert result_message.get("env") == "test_value", "The environment variable should be loaded correctly"
 
     def test_get_spec(self):
         tool = ToolForTest(tool_name="test_tool")
