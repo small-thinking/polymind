@@ -1,12 +1,11 @@
 """Indexer is used to index both the information and the learned tools.
 """
 
-from abc import ABC
+from abc import ABC, abstractmethod
 from typing import Any, List
 
 from pydantic import Field
 
-from polymind.core.message import Message
 from polymind.core.tool import BaseTool, Param
 
 
