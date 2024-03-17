@@ -36,17 +36,11 @@ class TestOpenAIChatTool:
         expected_response_content = "I'm doing great, thanks for asking!"
 
         # Patch the specific instance of AsyncOpenAI used by our tool instance
-        with patch.object(
-            tool.client.chat.completions, "create", new_callable=AsyncMock
-        ) as mock_create:
+        with patch.object(tool.client.chat.completions, "create", new_callable=AsyncMock) as mock_create:
             mock_create.return_value = AsyncMock(
-                choices=[
-                    AsyncMock(message=AsyncMock(content=expected_response_content))
-                ]
+                choices=[AsyncMock(message=AsyncMock(content=expected_response_content))]
             )
-            input_message = Message(
-                content={"prompt": prompt, "system_prompt": system_prompt}
-            )
+            input_message = Message(content={"prompt": prompt, "system_prompt": system_prompt})
             response_message = await tool._execute(input_message)
 
         assert response_message.content["response"] == expected_response_content
@@ -113,9 +107,7 @@ class TestOpenAIEmbeddingTool:
 
             input_texts = ["hello, how are you?", "This is a test."]
             embeddings = await openai_embedding_tool._embedding(input_texts)
-            assert isinstance(
-                embeddings, np.ndarray
-            ), "Expected output to be a numpy array"
+            assert isinstance(embeddings, np.ndarray), "Expected output to be a numpy array"
             assert embeddings.shape == (
                 2,
                 3,
@@ -124,13 +116,9 @@ class TestOpenAIEmbeddingTool:
     @pytest.mark.asyncio
     async def test_embedding_failure(self, openai_embedding_tool):
         with aioresponses() as m:
-            m.post(
-                openai_embedding_tool.url, payload={"error": "Bad request"}, status=400
-            )
+            m.post(openai_embedding_tool.url, payload={"error": "Bad request"}, status=400)
 
             input_texts = ["hello, how are you?", "This is a test."]
             with pytest.raises(Exception) as excinfo:
                 await openai_embedding_tool._embedding(input_texts)
-            assert "Bad request" in str(
-                excinfo.value
-            ), "Expected failure when API returns error"
+            assert "Bad request" in str(excinfo.value), "Expected failure when API returns error"

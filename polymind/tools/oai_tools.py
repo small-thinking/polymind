@@ -149,17 +149,13 @@ class OpenAIEmbeddingTool(Embedder):
         if "error" in response or output_message.content.get("status_code") != 200:
             error_message = response.get("error", "Failed to retrieve embeddings")
             raise Exception(error_message)
-        embeddings: List[List[float]] = [
-            entry.get("embedding", []) for entry in response.get("data", [])
-        ]
+        embeddings: List[List[float]] = [entry.get("embedding", []) for entry in response.get("data", [])]
         return np.array(embeddings)
 
 
 async def main():
     openai_embedding_tool = OpenAIEmbeddingTool()
-    input_message = Message(
-        content={"input": ["hello, how are you?", "This is a test."]}
-    )
+    input_message = Message(content={"input": ["hello, how are you?", "This is a test."]})
     response_message = await openai_embedding_tool(input_message)
     print(response_message)
     print(response_message.content["embeddings"].shape)
