@@ -12,6 +12,12 @@ from polymind.core.tool import BaseTool, Param
 
 class RestAPITool(BaseTool):
     tool_name: str = "rest-api-tool"
+    descriptions: List[str] = [
+        "This tool is used to call any RESTful API.",
+        "This tool can be used to call any web service.",
+        "This tool can be used to call any HTTP service.",
+        "This tool can be used to call any web API.",
+    ]
 
     def input_spec(self) -> List[Param]:
         return [
@@ -94,4 +100,6 @@ class RestAPITool(BaseTool):
                 except Exception:
                     response_data = await response.text()
 
-                return Message(content={"status_code": status_code, "response": response_data})
+                return Message(
+                    content={"status_code": status_code, "response": response_data}
+                )

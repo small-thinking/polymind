@@ -4,6 +4,7 @@
 
 import json
 import os
+from typing import List
 
 import pytest
 from pydantic import ValidationError
@@ -23,7 +24,9 @@ class TestParam:
             example="example value",
         )
         assert param.type == type_str, "Param type should be {}".format(type_str)
-        assert param.example == "example value", "Param example should match the provided example"
+        assert (
+            param.example == "example value"
+        ), "Param example should match the provided example"
 
     @pytest.mark.parametrize(
         "type_str, example",
@@ -38,7 +41,9 @@ class TestParam:
             example=example,
         )
         assert param.type == type_str, "Param type should be {}".format(type_str)
-        assert param.example == example, "Param example should match the provided example"
+        assert (
+            param.example == example
+        ), "Param example should match the provided example"
 
     @pytest.mark.parametrize(
         "type_str",
@@ -64,11 +69,89 @@ class TestParam:
         """Test that Param correctly stores a description and uses the default example if not specified."""
         description = "This parameter is for testing."
         param = Param(name="test_param", type="str", description=description)
-        assert param.description == description, "Param description should match the input description"
-        assert param.example == "", "Param example should use the default empty string if not specified"
+        assert (
+            param.description == description
+        ), "Param description should match the input description"
+        assert (
+            param.example == ""
+        ), "Param example should use the default empty string if not specified"
+
+
+# Test tools that fails the validation
+class NoNameTool(BaseTool):
+
+    def input_spec(self) -> List[Param]:
+        return [
+            Param(
+                name="query",
+                type="str",
+                example="example-str",
+                description="The query to reverse",
+            ),
+        ]
+
+    def output_spec(self) -> List[Param]:
+        return [
+            Param(
+                name="result",
+                type="str",
+                example="example-output-str",
+                description="The reversed query",
+            ),
+        ]
+
+    async def _execute(self, input: Message) -> Message:
+        return Message(content={"result": "test"})
+
+
+class NoEnoughDescriptionTool(BaseTool):
+
+    def input_spec(self) -> List[Param]:
+        return [
+            Param(
+                name="query",
+                type="str",
+                example="example-str",
+                description="The query to reverse",
+            ),
+        ]
+
+    def output_spec(self) -> List[Param]:
+        return [
+            Param(
+                name="result",
+                type="str",
+                example="example-output-str",
+                description="The reversed query",
+            ),
+        ]
+
+    async def _execute(self, input: Message) -> Message:
+        return Message(content={"result": "test"})
+
+
+class TestFailedTool:
+    def test_tool_without_name(self):
+        """Test that creating a DummyTool without a tool_name raises a ValidationError."""
+        with pytest.raises(ValidationError) as excinfo:
+            NoNameTool(descriptions=["desc1", "desc2", "desc3"])
+        assert "tool_name" in str(excinfo.value)
+
+    def test_tool_with_few_descriptions(self):
+        """Test that creating a DummyTool with less than 3 descriptions raises a ValidationError."""
+        with pytest.raises(ValidationError) as excinfo:
+            NoEnoughDescriptionTool(tool_name="ExampleTool", descriptions=["desc1"])
+        assert "descriptions" in str(excinfo.value)
+        assert "at least 3 items" in str(excinfo.value)
 
 
 class ToolForTest(BaseTool):
+
+    descriptions: list[str] = [
+        "This is a test tool",
+        "This tool is used to reverse the input query.",
+        "This tool is used to reverse the input query2.",
+    ]
 
     def input_spec(self) -> list[Param]:
         return [
@@ -130,22 +213,33 @@ def load_env_vars():
     os.environ.pop("SOME_VARIABLE", None)
 
 
-@pytest.mark.asyncio
 class TestBaseTool:
+    @pytest.mark.asyncio
     async def test_tool_execute(self):
         tool = ToolForTest(tool_name="test_tool")
         input_message = Message(content={"query": "test", "query2": "hello"})
         result_message = await tool(input_message)
-        assert result_message.get("result") == "tset", "The result should be the reverse of the input query"
-        assert result_message.get("result2") == "olleh", "The result should be the reverse of the input query2"
+        assert (
+            result_message.get("result") == "tset"
+        ), "The result should be the reverse of the input query"
+        assert (
+            result_message.get("result2") == "olleh"
+        ), "The result should be the reverse of the input query2"
 
+    @pytest.mark.asyncio
     async def test_tool_execute_with_env(self):
         tool = ToolForTest(tool_name="test_tool")
         input_message = Message(content={"query": "test", "query2": "hello"})
         result_message = await tool(input_message)
-        assert result_message.get("result") == "tset", "The result should be the reverse of the input query"
-        assert result_message.get("result2") == "olleh", "The result should be the reverse of the input query2"
-        assert result_message.get("env") == "test_value", "The environment variable should be loaded correctly"
+        assert (
+            result_message.get("result") == "tset"
+        ), "The result should be the reverse of the input query"
+        assert (
+            result_message.get("result2") == "olleh"
+        ), "The result should be the reverse of the input query2"
+        assert (
+            result_message.get("env") == "test_value"
+        ), "The environment variable should be loaded correctly"
 
     def test_get_spec(self):
         tool = ToolForTest(tool_name="test_tool")
