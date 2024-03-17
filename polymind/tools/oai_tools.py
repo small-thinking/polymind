@@ -5,11 +5,14 @@ This file contains the necessary tools of using OpenAI models.
 import os
 from typing import List
 
+import numpy as np
 from openai import AsyncOpenAI
 from pydantic import Field
 
+from polymind.core.embedder import Embedder
 from polymind.core.message import Message
 from polymind.core.tool import BaseTool, Param
+from polymind.tools.rest_api_tool import RestAPITool
 
 
 class OpenAIChatTool(BaseTool):
@@ -97,3 +100,72 @@ class OpenAIChatTool(BaseTool):
         content = response.choices[0].message.content
         response_message = Message(content={"response": content})
         return response_message
+
+
+class OpenAIEmbeddingTool(Embedder):
+    """The embedder is a tool to generate the embedding for the input using OpenAI embedding RESTful API.
+
+    The url of the RESTful API is https://api.openai.com/v1/embeddings.
+    Details can be seen from: https://platform.openai.com/docs/api-reference/embeddings.
+
+    Note: This class can be deprecated once the retrieval based tooling are implemented.
+    """
+
+    tool_name: str = "openai-embedding"
+    url: str = "https://api.openai.com/v1/embeddings"
+    embedding_model: str = Field(
+        default="text-embedding-3-small",
+        description="The model to generate the embedding. Choices: text-embedding-3-small, text-embedding-3-large",
+    )
+    embedding_restful_tool: BaseTool = RestAPITool()
+
+    async def _embedding(self, input: List[str]) -> np.ndarray:
+        """Generate the embedding for the input using OpenAI embedding."""
+        # Check OpenAI API key
+        openai_api_key = os.environ.get("OPENAI_API_KEY")
+        if not openai_api_key:
+            raise ValueError("OpenAI API key is not set.")
+        # Craft the message for the RESTful API
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {openai_api_key}",
+        }
+        body = {
+            "model": self.embedding_model,
+            "input": input,
+        }
+        input_message = Message(
+            content={
+                "url": self.url,
+                "method": "POST",
+                "headers": headers,
+                "body": body,
+            }
+        )
+        # Call the RESTful API
+        output_message = await self.embedding_restful_tool(input_message)
+        response = output_message.content.get("response", {})
+        # Check for error in the response
+        if "error" in response or output_message.content.get("status_code") != 200:
+            error_message = response.get("error", "Failed to retrieve embeddings")
+            raise Exception(error_message)
+        embeddings: List[List[float]] = [
+            entry.get("embedding", []) for entry in response.get("data", [])
+        ]
+        return np.array(embeddings)
+
+
+async def main():
+    openai_embedding_tool = OpenAIEmbeddingTool()
+    input_message = Message(
+        content={"input": ["hello, how are you?", "This is a test."]}
+    )
+    response_message = await openai_embedding_tool(input_message)
+    print(response_message)
+    print(response_message.content["embeddings"].shape)
+
+
+if __name__ == "__main__":
+    import asyncio
+
+    asyncio.run(main())

@@ -1,4 +1,5 @@
-"""Web service tool is a very generic tool that can be used to call any web service.
+"""RESTful API tool is a very generic tool that can be used to call any web service.
+
 """
 
 from typing import List
