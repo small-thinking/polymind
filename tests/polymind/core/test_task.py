@@ -3,6 +3,7 @@
 """
 
 import os
+from typing import List
 
 import pytest
 
@@ -25,11 +26,21 @@ def load_env_vars():
 class MockTool(BaseTool):
     """The role of MockTool is to reverse the query and append the tool_name to the "tools_executed" list."""
 
-    def input_spec(self) -> list[Param]:
-        return [Param(name="query", type="str", example="", description="The query to reverse")]
+    descriptions: List[str] = ["Mock tool for testing"]
 
-    def output_spec(self) -> list[Param]:
-        return [Param(name="result", type="str", example="", description="The reversed query")]
+    def input_spec(self) -> List[Param]:
+        return [
+            Param(
+                name="query", type="str", example="", description="The query to reverse"
+            )
+        ]
+
+    def output_spec(self) -> List[Param]:
+        return [
+            Param(
+                name="result", type="str", example="", description="The reversed query"
+            )
+        ]
 
     async def _execute(self, input: Message) -> Message:
         # Get the environment variable or use a default value
@@ -68,8 +79,13 @@ class MockTask(BaseTask):
 class TestSequentialTask:
     async def test_sequential_task_execution(self):
         num_tasks = 3
-        tasks = [MockTask(task_name=f"Task{i}", tool=MockTool(tool_name=f"Tool{i}")) for i in range(num_tasks)]
-        sequential_task = SequentialTask(task_name="test_seq_task", tool=MockTool(tool_name="Primary"), tasks=tasks)
+        tasks = [
+            MockTask(task_name=f"Task{i}", tool=MockTool(tool_name=f"Tool{i}"))
+            for i in range(num_tasks)
+        ]
+        sequential_task = SequentialTask(
+            task_name="test_seq_task", tool=MockTool(tool_name="Primary"), tasks=tasks
+        )
         input_message = Message(content={})
         result_message = await sequential_task(input_message)
 
@@ -82,4 +98,6 @@ class TestSequentialTask:
         assert all(
             env_value == "test_task" for env_value in result_message.content["env_task"]
         ), "Task environment variable not loaded correctly"
-        assert sequential_task.context.content["idx"] == num_tasks, "Context index not updated correctly"
+        assert (
+            sequential_task.context.content["idx"] == num_tasks
+        ), "Context index not updated correctly"

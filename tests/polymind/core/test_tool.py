@@ -4,6 +4,7 @@
 
 import json
 import os
+from typing import List
 
 import pytest
 from pydantic import ValidationError
@@ -74,6 +75,74 @@ class TestParam:
         assert (
             param.example == ""
         ), "Param example should use the default empty string if not specified"
+
+
+# Test tools that fails the validation
+class NoNameTool(BaseTool):
+
+    def input_spec(self) -> List[Param]:
+        return [
+            Param(
+                name="query",
+                type="str",
+                example="example-str",
+                description="The query to reverse",
+            ),
+        ]
+
+    def output_spec(self) -> List[Param]:
+        return [
+            Param(
+                name="result",
+                type="str",
+                example="example-output-str",
+                description="The reversed query",
+            ),
+        ]
+
+    async def _execute(self, input: Message) -> Message:
+        return Message(content={"result": "test"})
+
+
+class NoEnoughDescriptionTool(BaseTool):
+
+    def input_spec(self) -> List[Param]:
+        return [
+            Param(
+                name="query",
+                type="str",
+                example="example-str",
+                description="The query to reverse",
+            ),
+        ]
+
+    def output_spec(self) -> List[Param]:
+        return [
+            Param(
+                name="result",
+                type="str",
+                example="example-output-str",
+                description="The reversed query",
+            ),
+        ]
+
+    async def _execute(self, input: Message) -> Message:
+        return Message(content={"result": "test"})
+
+
+class TestFailedTool:
+    def test_tool_without_name(self):
+        """Test that creating a DummyTool without a tool_name raises a ValidationError."""
+        with pytest.raises(ValidationError) as excinfo:
+            NoNameTool(descriptions=["desc1", "desc2", "desc3"])
+        assert "tool_name" in str(excinfo.value)
+
+    def test_tool_with_few_descriptions(self):
+        """Test that creating a DummyTool with less than 3 descriptions raises a ValidationError."""
+        with pytest.raises(ValidationError) as excinfo:
+            NoEnoughDescriptionTool(tool_name="ExampleTool", descriptions=["desc1"])
+        assert "descriptions" in str(excinfo.value)
+        assert "at least 3 items" in str(excinfo.value)
 
 
 class ToolForTest(BaseTool):
