@@ -2,7 +2,7 @@
 """
 
 from abc import ABC, abstractmethod
-from typing import Any, List
+from typing import List
 
 from pydantic import Field
 
@@ -14,12 +14,18 @@ class Indexer(BaseTool, ABC):
     """Indexer itself is a tool, it is used to index both the information and the learned tools."""
 
     tool_name: str = "indexer"
-    index_path: str = Field(default="index", description="The path to the index folder.")
-    embedder: Embedder = Field(description="The embedder to generate the embedding for the descriptions.")
+    index_path: str = Field(
+        default="index", description="The path to the index folder."
+    )
+    embedder: Embedder = Field(
+        description="The embedder to generate the embedding for the descriptions."
+    )
 
     # For one piece of information, we can multi-index it with different descriptions.
     # This can help to improve the recall during retrieval.
-    descriptions_key: str = Field(default="keywords", description="The keywords to index a piece of information.")
+    descriptions_key: str = Field(
+        default="keywords", description="The keywords to index a piece of information."
+    )
     content_key: str = Field(default="content", description="The content to index.")
 
     @abstractmethod
