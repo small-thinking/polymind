@@ -31,7 +31,7 @@ class TestParam:
         [
             ("Dict[str, int]", "{'key': 123}"),
             ("List[int]", "[1, 2, 3]"),
-            ("np.ndarray", "array([1, 2, 3])"),
+            ("np.ndarray", "np.array([1, 2, 3])"),
         ],
     )
     def test_valid_complex_types_with_example(self, type_str, example):
