@@ -28,7 +28,11 @@ class TestParam:
 
     @pytest.mark.parametrize(
         "type_str, example",
-        [("Dict[str, int]", "{'key': 123}"), ("List[int]", "[1, 2, 3]")],
+        [
+            ("Dict[str, int]", "{'key': 123}"),
+            ("List[int]", "[1, 2, 3]"),
+            ("np.ndarray", "array([1, 2, 3])"),
+        ],
     )
     def test_valid_complex_types_with_example(self, type_str, example):
         """Test that Param accepts valid complex type strings with appropriate element types and examples."""

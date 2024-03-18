@@ -81,9 +81,7 @@ class BaseTool(BaseModel, ABC):
     @field_validator("descriptions")
     def check_descriptions(cls, v: List[str]) -> List[str]:
         if len(v) < 3:
-            raise ValueError(
-                "The descriptions must have at least 3 items. The more the better."
-            )
+            raise ValueError("The descriptions must have at least 3 items. The more the better.")
         return v
 
     def get_descriptions(self) -> List[str]:
