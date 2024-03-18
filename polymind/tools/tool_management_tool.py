@@ -1,6 +1,6 @@
 import json
 import os
-from typing import Any, Dict, List, Set
+from typing import Any, Dict, List
 
 import faiss
 import numpy as np
@@ -17,7 +17,9 @@ class ToolIndexer(Indexer):
     """Indexer for the learned tools."""
 
     tool_name: str = "tool-indexer"
-    learned_tool_folder: str = Field(default="knowledge/tools", description="The folder to store the learned tools.")
+    learned_tool_folder: str = Field(
+        default="knowledge/tools", description="The folder to store the learned tools."
+    )
 
     embedder: Embedder = OpenAIEmbeddingTool()
 
@@ -70,8 +72,12 @@ class ToolIndexer(Indexer):
             index.add(embedding)
             faiss.write_index(index, index_path)
 
-    def _create_or_update_metadata(self, tool_name: str, descriptions: List[str], filename: str):
-        metadata_json_path = os.path.join(self.learned_tool_folder, "tool_profiles.json")
+    def _create_or_update_metadata(
+        self, tool_name: str, descriptions: List[str], filename: str
+    ):
+        metadata_json_path = os.path.join(
+            self.learned_tool_folder, "tool_profiles.json"
+        )
         tool_metadata = {
             "tool_name": tool_name,
             "descriptions": descriptions,
@@ -105,7 +111,9 @@ class ToolIndexer(Indexer):
         # Save the index, if index exists, increment the index.
         self._create_or_update_index(embedding)
         # Save the actual tool file, if folder not exists, create the folder.
-        self._create_or_update_metadata(tool_name=tool_name, descriptions=descriptions, filename=filename)
+        self._create_or_update_metadata(
+            tool_name=tool_name, descriptions=descriptions, filename=filename
+        )
         return Message(content={"status": "success"})
 
 
@@ -122,8 +130,12 @@ class ToolRetriever(BaseTool):
         default="./knowledge/tools",
         description="The folder containing the tool index and metadata.",
     )
-    top_k: int = Field(default=3, description="Number of top relevant tools to retrieve.")
-    embedder: Embedder = Field(OpenAIEmbeddingTool(), description="The embedder to generate the embedding.")
+    top_k: int = Field(
+        default=3, description="Number of top relevant tools to retrieve."
+    )
+    embedder: Embedder = Field(
+        OpenAIEmbeddingTool(), description="The embedder to generate the embedding."
+    )
 
     def input_spec(self) -> List[Param]:
         return [
@@ -155,7 +167,9 @@ class ToolRetriever(BaseTool):
             )
         ]
 
-    def _find_top_k_candidates(self, query_embedding: np.ndarray) -> List[Dict[str, Any]]:
+    def _find_top_k_candidates(
+        self, query_embedding: np.ndarray
+    ) -> List[Dict[str, Any]]:
         index_path = os.path.join(self.learned_tool_folder, "tool.index")
         metadata_path = os.path.join(self.learned_tool_folder, "tool_profiles.json")
         if not os.path.exists(index_path) or not os.path.exists(metadata_path):
@@ -166,7 +180,9 @@ class ToolRetriever(BaseTool):
         if index.ntotal == 0:
             raise ValueError("FAISS index is empty.")
         # Query the index
-        distances, indices = index.search(query_embedding.astype(np.float32), min(self.top_k, index.ntotal))
+        distances, indices = index.search(
+            query_embedding.astype(np.float32), min(self.top_k, index.ntotal)
+        )
         # Load metadata
         with open(metadata_path, "r") as f:
             metadata = json.load(f)
@@ -176,7 +192,9 @@ class ToolRetriever(BaseTool):
         for i, idx in enumerate(indices[0]):
             if idx < len(metadata) and metadata[idx]["tool_name"] not in tool_names:
                 tool_metadata = metadata[idx]
-                similarity_score = 1.0 / (1 + distances[0][i])  # Convert distance to similarity
+                similarity_score = 1.0 / (
+                    1 + distances[0][i]
+                )  # Convert distance to similarity
                 candidates.append(
                     {
                         "tool_name": tool_metadata["tool_name"],
