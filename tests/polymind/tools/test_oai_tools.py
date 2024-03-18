@@ -1,6 +1,6 @@
 """Tests for OpenAIChatTool.
 Run the test with the following command:
-    poetry run pytest tests/polymind/tools/test_oai_tools.py
+    poetry run pytest tests/polymind/tools/test_oai_tool.py
 """
 
 import json
@@ -11,7 +11,7 @@ import pytest
 from aioresponses import aioresponses
 
 from polymind.core.message import Message
-from polymind.tools.oai_tools import OpenAIChatTool, OpenAIEmbeddingTool
+from polymind.tools.oai_tool import OpenAIChatTool, OpenAIEmbeddingTool
 from polymind.tools.rest_api_tool import RestAPITool
 
 
