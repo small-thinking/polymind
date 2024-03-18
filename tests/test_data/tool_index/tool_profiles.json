@@ -1,0 +1,206 @@
+[
+    {
+        "tool_name": "rest-api-tool",
+        "descriptions": [
+            "This tool is used to call any RESTful API.",
+            "This tool can be used to call any web service.",
+            "This tool can be used to call any HTTP service.",
+            "This tool can be used to call any web API."
+        ],
+        "file_name": "rest_api_tool.py"
+    },
+    {
+        "tool_name": "rest-api-tool",
+        "descriptions": [
+            "This tool is used to call any RESTful API.",
+            "This tool can be used to call any web service.",
+            "This tool can be used to call any HTTP service.",
+            "This tool can be used to call any web API."
+        ],
+        "file_name": "rest_api_tool.py"
+    },
+    {
+        "tool_name": "rest-api-tool",
+        "descriptions": [
+            "This tool is used to call any RESTful API.",
+            "This tool can be used to call any web service.",
+            "This tool can be used to call any HTTP service.",
+            "This tool can be used to call any web API."
+        ],
+        "file_name": "rest_api_tool.py"
+    },
+    {
+        "tool_name": "rest-api-tool",
+        "descriptions": [
+            "This tool is used to call any RESTful API.",
+            "This tool can be used to call any web service.",
+            "This tool can be used to call any HTTP service.",
+            "This tool can be used to call any web API."
+        ],
+        "file_name": "rest_api_tool.py"
+    },
+    {
+        "tool_name": "tool-indexer",
+        "descriptions": [
+            "ToolIndexer is a tool to help find external knowledge",
+            "ToolIndexer is a tool to internalize the tools.",
+            "ToolIndexer is a tool to index the learned tools into the knowledge base."
+        ],
+        "file_name": "tool_management_tool.py"
+    },
+    {
+        "tool_name": "tool-indexer",
+        "descriptions": [
+            "ToolIndexer is a tool to help find external knowledge",
+            "ToolIndexer is a tool to internalize the tools.",
+            "ToolIndexer is a tool to index the learned tools into the knowledge base."
+        ],
+        "file_name": "tool_management_tool.py"
+    },
+    {
+        "tool_name": "tool-indexer",
+        "descriptions": [
+            "ToolIndexer is a tool to help find external knowledge",
+            "ToolIndexer is a tool to internalize the tools.",
+            "ToolIndexer is a tool to index the learned tools into the knowledge base."
+        ],
+        "file_name": "tool_management_tool.py"
+    },
+    {
+        "tool_name": "tool-retriever",
+        "descriptions": [
+            "ToolRetriever is a tool to help find external knowledge",
+            "ToolRetriever is a tool to retrieve the tools.",
+            "ToolRetriever is a tool to retrieve the learned tools from the knowledge base."
+        ],
+        "file_name": "tool_management_tool.py"
+    },
+    {
+        "tool_name": "tool-retriever",
+        "descriptions": [
+            "ToolRetriever is a tool to help find external knowledge",
+            "ToolRetriever is a tool to retrieve the tools.",
+            "ToolRetriever is a tool to retrieve the learned tools from the knowledge base."
+        ],
+        "file_name": "tool_management_tool.py"
+    },
+    {
+        "tool_name": "tool-retriever",
+        "descriptions": [
+            "ToolRetriever is a tool to help find external knowledge",
+            "ToolRetriever is a tool to retrieve the tools.",
+            "ToolRetriever is a tool to retrieve the learned tools from the knowledge base."
+        ],
+        "file_name": "tool_management_tool.py"
+    },
+    {
+        "tool_name": "open-ai-chat",
+        "descriptions": [
+            "This tool is used to chat with OpenAI's language models.",
+            "This tool can be used as the orchestrator to control the conversation and problem solving.",
+            "This tool can be used to breakdown the problem into smaller parts and solve them.",
+            "This tool can be used to generate the response from the chat.",
+            "This tool can be used to generate the code of new tools."
+        ],
+        "file_name": "oai_tool.py"
+    },
+    {
+        "tool_name": "open-ai-chat",
+        "descriptions": [
+            "This tool is used to chat with OpenAI's language models.",
+            "This tool can be used as the orchestrator to control the conversation and problem solving.",
+            "This tool can be used to breakdown the problem into smaller parts and solve them.",
+            "This tool can be used to generate the response from the chat.",
+            "This tool can be used to generate the code of new tools."
+        ],
+        "file_name": "oai_tool.py"
+    },
+    {
+        "tool_name": "open-ai-chat",
+        "descriptions": [
+            "This tool is used to chat with OpenAI's language models.",
+            "This tool can be used as the orchestrator to control the conversation and problem solving.",
+            "This tool can be used to breakdown the problem into smaller parts and solve them.",
+            "This tool can be used to generate the response from the chat.",
+            "This tool can be used to generate the code of new tools."
+        ],
+        "file_name": "oai_tool.py"
+    },
+    {
+        "tool_name": "open-ai-chat",
+        "descriptions": [
+            "This tool is used to chat with OpenAI's language models.",
+            "This tool can be used as the orchestrator to control the conversation and problem solving.",
+            "This tool can be used to breakdown the problem into smaller parts and solve them.",
+            "This tool can be used to generate the response from the chat.",
+            "This tool can be used to generate the code of new tools."
+        ],
+        "file_name": "oai_tool.py"
+    },
+    {
+        "tool_name": "open-ai-chat",
+        "descriptions": [
+            "This tool is used to chat with OpenAI's language models.",
+            "This tool can be used as the orchestrator to control the conversation and problem solving.",
+            "This tool can be used to breakdown the problem into smaller parts and solve them.",
+            "This tool can be used to generate the response from the chat.",
+            "This tool can be used to generate the code of new tools."
+        ],
+        "file_name": "oai_tool.py"
+    },
+    {
+        "tool_name": "openai-embedding",
+        "descriptions": [
+            "This tool is used to generate the embedding for the input.",
+            "This tool is used to quantify the semantic meaning of the input.",
+            "This tool can be used to generate the embedding for the input using OpenAI embedding.",
+            "This tool can be used to generate the embedding for the input using OpenAI's text-embedding-3-small model.",
+            "This tool can be used to generate the embedding for the input using OpenAI's text-embedding-3-large model."
+        ],
+        "file_name": "oai_tool.py"
+    },
+    {
+        "tool_name": "openai-embedding",
+        "descriptions": [
+            "This tool is used to generate the embedding for the input.",
+            "This tool is used to quantify the semantic meaning of the input.",
+            "This tool can be used to generate the embedding for the input using OpenAI embedding.",
+            "This tool can be used to generate the embedding for the input using OpenAI's text-embedding-3-small model.",
+            "This tool can be used to generate the embedding for the input using OpenAI's text-embedding-3-large model."
+        ],
+        "file_name": "oai_tool.py"
+    },
+    {
+        "tool_name": "openai-embedding",
+        "descriptions": [
+            "This tool is used to generate the embedding for the input.",
+            "This tool is used to quantify the semantic meaning of the input.",
+            "This tool can be used to generate the embedding for the input using OpenAI embedding.",
+            "This tool can be used to generate the embedding for the input using OpenAI's text-embedding-3-small model.",
+            "This tool can be used to generate the embedding for the input using OpenAI's text-embedding-3-large model."
+        ],
+        "file_name": "oai_tool.py"
+    },
+    {
+        "tool_name": "openai-embedding",
+        "descriptions": [
+            "This tool is used to generate the embedding for the input.",
+            "This tool is used to quantify the semantic meaning of the input.",
+            "This tool can be used to generate the embedding for the input using OpenAI embedding.",
+            "This tool can be used to generate the embedding for the input using OpenAI's text-embedding-3-small model.",
+            "This tool can be used to generate the embedding for the input using OpenAI's text-embedding-3-large model."
+        ],
+        "file_name": "oai_tool.py"
+    },
+    {
+        "tool_name": "openai-embedding",
+        "descriptions": [
+            "This tool is used to generate the embedding for the input.",
+            "This tool is used to quantify the semantic meaning of the input.",
+            "This tool can be used to generate the embedding for the input using OpenAI embedding.",
+            "This tool can be used to generate the embedding for the input using OpenAI's text-embedding-3-small model.",
+            "This tool can be used to generate the embedding for the input using OpenAI's text-embedding-3-large model."
+        ],
+        "file_name": "oai_tool.py"
+    }
+]

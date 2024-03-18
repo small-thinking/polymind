@@ -1,6 +1,6 @@
 """
 Run command to test the code:
-    poetry run pytest tests/polymind/tools/test_tool_indexer_tool.py
+    poetry run pytest tests/polymind/tools/test_tool_management_tool.py
 """
 
 import json
@@ -13,7 +13,8 @@ import numpy as np
 import pytest
 
 from polymind.core.message import Message
-from polymind.tools.tool_indexer_tool import ToolIndexer
+from polymind.tools.oai_tool import OpenAIEmbeddingTool
+from polymind.tools.tool_management_tool import ToolIndexer, ToolRetriever
 
 
 class TestToolIndexerIntegration:
@@ -52,19 +53,48 @@ class TestToolIndexerIntegration:
         metadata_path = os.path.join(tool_indexer.learned_tool_folder, "tool_profiles.json")
         assert os.path.exists(index_path), "Index file should exist after execution"
         assert os.path.exists(metadata_path), "Metadata file should exist after execution"
-
+        # Find top 2
         index = faiss.read_index(index_path)
-        distances, indices = index.search(embeddings, 1)
-        assert indices.shape == (3, 1), "Should return correct number of indices"
+        distances, indices = index.search(embeddings, k=2)
+        assert indices.shape == (3, 2), "Should return correct number of indices"
         assert distances.shape == (
             3,
-            1,
+            2,
         ), "Should return correct number of distances"
 
         with open(metadata_path, "r") as f:
             metadata = json.load(f)
-        assert len(metadata) == 1, "There should be one tool indexed"
+        assert len(metadata) == 3, "There should be one tool indexed 3 times"
         tool_metadata = metadata[0]
         assert tool_metadata["tool_name"] == input_message.content["tool_name"], "Tool name should match"
         assert tool_metadata["file_name"] == input_message.content["tool_file_name"], "File name should match"
         assert tool_metadata["descriptions"] == input_message.content["descriptions"], "Descriptions should match"
+
+
+class TestToolRetriever:
+    @pytest.fixture
+    def tool_retriever(self):
+        # Specify the path to your test folder that contains tool_profiles.json and tool.index
+        test_folder_path = "./tests/test_data/tool_index"
+        # Initialize ToolRetriever with the test folder path
+        return ToolRetriever(learned_tool_folder=test_folder_path)
+
+    @pytest.mark.asyncio
+    async def test_retrieval(self, tool_retriever):
+        requirement = "I need a tool for testing."
+        input_message = Message(content={"requirement": requirement})
+
+        # Mock the embedding operation to return the structured JSON response you described
+        mock_embedding_response = np.random.rand(1, 1536).astype("float32")
+        mock_embedding = AsyncMock(return_value=mock_embedding_response)
+        with patch.object(OpenAIEmbeddingTool, "_embedding", mock_embedding):
+            output_message = await tool_retriever(input_message)
+
+        # Verify the output
+        assert "candidates" in output_message.content, "Output message should contain candidates"
+        candidates = output_message.content["candidates"]
+        assert len(candidates) > 0, "There should be at least one candidate returned"
+        for candidate in candidates:
+            assert (
+                "tool_name" in candidate and "descriptions" in candidate
+            ), "Each candidate should contain 'tool_name' and 'descriptions'"
