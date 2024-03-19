@@ -20,25 +20,27 @@ class ThoughtProcess(BaseModel, ABC):
     def __str__(self):
         return self.thought_process_name
 
-    async def __call__(self, input: Message, agent: "Agent") -> Message:
+    async def __call__(self, agent: "Agent", input: Message) -> Message:
         """Makes the instance callable, delegating to the execute method.
         This allows the instance to be used as a callable object, simplifying
         the syntax for executing the thought process.
 
         Args:
+            agent (Agent): The agent who is executing the thought process.
             input (Message): The input message to the thought process.
 
         Returns:
             Message: The output message from the thought process.
         """
-        return await self._execute(input)
+        return await self._execute(agent=agent, input=input)
 
     @abstractmethod
-    async def _execute(self, input: Message) -> Message:
+    async def _execute(self, agent: "Agent", input: Message) -> Message:
         """Execute the thought process and return the result.
         The derived class must implement this method to define the behavior of the thought process.
 
         Args:
+            agent (Agent): The agent who is executing the thought process.
             input (Message): The input to the thought process carried in a message.
 
         Returns:

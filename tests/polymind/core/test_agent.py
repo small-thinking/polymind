@@ -10,7 +10,7 @@ from polymind.core.message import Message
 
 
 class MockThoughtProcess(ThoughtProcess):
-    async def _execute(self, input: Message) -> Message:
+    async def _execute(self, agent: Agent, input: Message) -> Message:
         # Implement a simple test logic, for example, just echo back the input with some modification
         modified_content = {"processed": True, **input.content}
         return Message(content=modified_content)
@@ -30,7 +30,7 @@ class TestMockThoughtProcess:
         input_message = Message(content={"hello": "world"})
 
         # Now, pass both the input_message and agent to the thought_process call
-        output_message = await thought_process(input_message, agent)
+        output_message = await thought_process(agent=agent, input=input_message)
 
         # Assertions to verify the behavior
         assert output_message.content.get("processed") == True
