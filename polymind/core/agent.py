@@ -32,7 +32,7 @@ class ThoughtProcess(BaseModel, ABC):
         Returns:
             Message: The output message from the thought process.
         """
-        return await self._execute(input)
+        return await self._execute(agent=agent, input=input)
 
     @abstractmethod
     async def _execute(self, agent: "Agent", input: Message) -> Message:
