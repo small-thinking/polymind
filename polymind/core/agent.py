@@ -81,5 +81,5 @@ class Agent(BaseModel):
         """
         if not self.thought_process:
             raise ValueError("The thought process of the agent needs to be hooked first.")
-        self._input_preprocess(self, input)
-        return await self.thought_process(input)
+        self._input_preprocess(agent=self, input=input)
+        return await self.thought_process(agent=self, input=input)
