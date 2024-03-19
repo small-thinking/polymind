@@ -1,8 +1,8 @@
 [tool.poetry]
 name = "polymind"
-version = "0.0.17"  # Update this version before publishing to PyPI
+version = "0.0.18"  # Update this version before publishing to PyPI
 description = "PolyMind is a customizable collaborative multi-agent framework for collective intelligence and distributed problem solving."
-authors = ["Yx Jiang <2237303+yxjiang@users.noreply.github.com>"]
+authors = ["TechTao"]
 license = "MIT License"
 readme = "README.md"
 
