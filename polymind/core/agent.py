@@ -15,7 +15,7 @@ class ThoughtProcess(BaseModel, ABC):
     """
 
     thought_process_name: str
-    tools: Dict[str, BaseModel]
+    tools: Dict[str, BaseTool]
 
     def __str__(self):
         return self.thought_process_name
@@ -63,7 +63,7 @@ class Agent(BaseModel):
     def set_thought_process(self, thought_process: ThoughtProcess):
         self.thought_process = thought_process
 
-    def _input_preprocess(self, input: Message) -> None:
+    def _input_preprocess(self, agent: "Agent", input: Message) -> None:
         """Preprocess the input message before the agent starts working.
         Now now the only thing to do is to add the persona to the input message.
         """
@@ -81,5 +81,5 @@ class Agent(BaseModel):
         """
         if not self.thought_process:
             raise ValueError("The thought process of the agent needs to be hooked first.")
-        self._input_preprocess(input, self)
+        self._input_preprocess(self, input)
         return await self.thought_process(input)
