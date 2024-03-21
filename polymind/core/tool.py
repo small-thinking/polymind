@@ -32,7 +32,9 @@ class Param(BaseModel):
 
     @field_validator("type")
     def check_type(cls, v: str) -> str:
-        allowed_simple_types = ["str", "int", "float", "bool", "ndarray", "np.ndarray", "pandas.DataFrame", "pd.DataFrame"]
+        allowed_simple_types = [
+            "str", "int", "float", "bool", "ndarray", "np.ndarray", "pandas.DataFrame", "pd.DataFrame"
+        ]
         if v in allowed_simple_types:
             return v
         # Validating Dict type with specific format for key and value types
