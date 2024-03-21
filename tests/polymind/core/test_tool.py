@@ -55,7 +55,6 @@ class TestParam:
             "Dict[str]",
             "List[str, float, int]",
             "set",
-            "bool",
             "NoneType",
             "List",
         ],
