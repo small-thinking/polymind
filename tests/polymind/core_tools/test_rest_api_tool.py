@@ -1,13 +1,13 @@
 """
 Run the test with the following command:
-    poetry run pytest tests/polymind/tools/test_rest_api_tool.py
+    poetry run pytest tests/polymind/core_tools/test_rest_api_tool.py
 """
 
 import pytest
 from aioresponses import aioresponses
 
 from polymind.core.message import Message
-from polymind.tools.rest_api_tool import RestAPITool
+from polymind.core_tools.rest_api_tool import RestAPITool
 
 
 class TestRestAPITool:

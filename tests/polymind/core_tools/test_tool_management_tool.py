@@ -1,6 +1,6 @@
 """
 Run command to test the code:
-    poetry run pytest tests/polymind/tools/test_tool_management_tool.py
+    poetry run pytest tests/polymind/core_tools/test_tool_management_tool.py
 """
 
 import json
@@ -13,8 +13,8 @@ import numpy as np
 import pytest
 
 from polymind.core.message import Message
-from polymind.tools.llm_tool import OpenAIEmbeddingTool
-from polymind.tools.tool_management_tool import ToolIndexer, ToolRetriever
+from polymind.core_tools.llm_tool import OpenAIEmbeddingTool
+from polymind.core_tools.tool_management_tool import ToolIndexer, ToolRetriever
 
 
 class TestToolIndexerIntegration:
