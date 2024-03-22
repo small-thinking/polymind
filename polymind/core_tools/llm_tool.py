@@ -14,7 +14,7 @@ from pydantic import Field
 from polymind.core.embedder import Embedder
 from polymind.core.message import Message
 from polymind.core.tool import BaseTool, Param
-from polymind.tools.rest_api_tool import RestAPITool
+from polymind.core_tools.rest_api_tool import RestAPITool
 
 
 class LLMTool(BaseTool, ABC):
