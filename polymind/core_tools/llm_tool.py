@@ -4,7 +4,6 @@ For now, it contains two tools: OpenAIChatTool and OpenAIEmbeddingTool.
 """
 
 import os
-from abc import ABC, abstractmethod
 from typing import List
 
 import numpy as np
