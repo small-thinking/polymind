@@ -1,10 +1,11 @@
 from abc import ABC, abstractmethod
 from typing import Dict, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from polymind.core.message import Message
 from polymind.core.tool import BaseTool
+from polymind.core_tools.llm_tool import LLMTool
 
 
 class ThoughtProcess(BaseModel, ABC):
@@ -15,6 +16,8 @@ class ThoughtProcess(BaseModel, ABC):
     """
 
     thought_process_name: str
+
+    reasoner: LLMTool = Field(default=None, description="The reasoner that will be used in the thought process.")
     tools: Dict[str, BaseTool]
 
     def __str__(self):
