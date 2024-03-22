@@ -11,7 +11,8 @@ from polymind.core.embedder import Embedder
 from polymind.core.indexer import Indexer
 from polymind.core.message import Message
 from polymind.core.tool import BaseTool, Param
-from polymind.tools.llm_tool import LLMTool, OpenAIChatTool, OpenAIEmbeddingTool
+from polymind.tools.llm_tool import (LLMTool, OpenAIChatTool,
+                                     OpenAIEmbeddingTool)
 
 
 class ToolIndexer(Indexer):
