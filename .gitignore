@@ -168,3 +168,4 @@ scripts
 # Polymind learned facts and tools
 knowledge/facts/**
 knowledge/tools/**
+use_cases

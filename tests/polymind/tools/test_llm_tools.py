@@ -1,6 +1,6 @@
 """Tests for OpenAIChatTool.
 Run the test with the following command:
-    poetry run pytest tests/polymind/tools/test_oai_tool.py
+    poetry run pytest tests/polymind/tools/test_llm_tools.py
 """
 
 import json
@@ -11,7 +11,7 @@ import pytest
 from aioresponses import aioresponses
 
 from polymind.core.message import Message
-from polymind.tools.oai_tool import OpenAIChatTool, OpenAIEmbeddingTool
+from polymind.tools.llm_tool import OpenAIChatTool, OpenAIEmbeddingTool
 from polymind.tools.rest_api_tool import RestAPITool
 
 
@@ -69,6 +69,24 @@ class TestOpenAIChatTool:
                 "type": "str",
                 "description": "The prompt for the chat.",
                 "example": "hello, how are you?"
+            },
+            {
+                "name": "max_tokens",
+                "type": "int",
+                "description": "The maximum number of tokens for the chat.",
+                "example": "1500"
+            },
+            {
+                "name": "temperature",
+                "type": "float",
+                "description": "The temperature for the chat.",
+                "example": "0.7"
+            },
+            {
+                "name": "top_p",
+                "type": "float",
+                "description": "The top p for the chat.",
+                "example": "0.1"
             }
         ],
         "output_message": [
