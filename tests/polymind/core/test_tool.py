@@ -14,7 +14,21 @@ from polymind.core.tool import BaseTool, Param
 
 
 class TestParam:
-    @pytest.mark.parametrize("type_str", ["str", "int", "float"])
+    @pytest.mark.parametrize(
+        "type_str",
+        [
+            "str",
+            "int",
+            "float",
+            "bool",
+            "ndarray",
+            "np.ndarray",
+            "numpy.ndarray",
+            "DataFrame",
+            "pd.DataFrame",
+            "pandas.DataFrame",
+        ],
+    )
     def test_valid_simple_types(self, type_str):
         """Test that Param accepts valid simple type strings."""
         param = Param(
@@ -32,6 +46,10 @@ class TestParam:
             ("Dict[str, int]", "{'key': 123}"),
             ("List[int]", "[1, 2, 3]"),
             ("np.ndarray", "np.array([1, 2, 3])"),
+            (
+                "pd.DataFrame",
+                "pd.DataFrame({'col1': [1, 2, 3], 'col2': ['a', 'b', 'c']})",
+            ),
         ],
     )
     def test_valid_complex_types_with_example(self, type_str, example):

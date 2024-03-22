@@ -33,7 +33,16 @@ class Param(BaseModel):
     @field_validator("type")
     def check_type(cls, v: str) -> str:
         allowed_simple_types = [
-            "str", "int", "float", "bool", "ndarray", "np.ndarray", "pandas.DataFrame", "pd.DataFrame"
+            "str",
+            "int",
+            "float",
+            "bool",
+            "ndarray",
+            "np.ndarray",
+            "numpy.ndarray",
+            "pandas.DataFrame",
+            "pd.DataFrame",
+            "DataFrame",
         ]
         if v in allowed_simple_types:
             return v
