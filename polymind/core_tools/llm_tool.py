@@ -4,7 +4,6 @@ For now, it contains two tools: OpenAIChatTool and OpenAIEmbeddingTool.
 """
 
 import os
-from abc import ABC, abstractmethod
 from typing import List
 
 import numpy as np
@@ -13,68 +12,8 @@ from pydantic import Field
 
 from polymind.core.embedder import Embedder
 from polymind.core.message import Message
-from polymind.core.tool import BaseTool, Param
+from polymind.core.tool import BaseTool, LLMTool, Param
 from polymind.core_tools.rest_api_tool import RestAPITool
-
-
-class LLMTool(BaseTool, ABC):
-    """LLM tool defines the basic properties of the language model tools."""
-
-    max_tokens: int = Field(..., description="The maximum number of tokens for the chat.")
-    temperature: float = Field(default=1.0, description="The temperature for the chat.")
-    top_p: float = Field(
-        default=0.1,
-        description="The top p for the chat. Top p is used to prevent the model from generating unlikely words.",
-    )
-    stop: str = Field(default=None, description="The stop sequence for the chat.")
-
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self._set_client()
-
-    @abstractmethod
-    def _set_client(self):
-        """Set the client for the language model."""
-        pass
-
-    @abstractmethod
-    async def _invoke(self, input: Message) -> Message:
-        """Invoke the language model with the input message and return the response message.
-
-        Args:
-            input (Message): The input message to the language model. The message should contain the below keys:
-                - prompt: The prompt for the chat.
-                - system_prompt: The system prompt for the chat.
-                - max_tokens: The maximum number of tokens for the chat.
-                - temperature: The temperature for the chat.
-                - top_p: The top p for the chat.
-                - stop: The stop sequence for the chat.
-        """
-        pass
-
-    async def _execute(self, input: Message) -> Message:
-        """Execute the tool and return the result.
-        The input message should contain a "prompt" and optionally a "system_prompt".
-        """
-
-        # Validate the input message.
-        prompt = input.get("prompt", "")
-        system_prompt = input.get("system_prompt", self.system_prompt)
-        if not prompt:
-            raise ValueError("Prompt cannot be empty.")
-        input.content.update(
-            {
-                "max_tokens": self.max_tokens,
-                "temperature": self.temperature,
-                "top_p": self.top_p,
-                "system_prompt": system_prompt,
-            }
-        )
-        if self.stop:
-            input.content["stop"] = self.stop
-
-        response_message = await self._invoke(input)
-        return response_message
 
 
 class OpenAIChatTool(LLMTool):
