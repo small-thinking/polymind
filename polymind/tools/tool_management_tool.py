@@ -10,7 +10,7 @@ from polymind.core.embedder import Embedder
 from polymind.core.indexer import Indexer
 from polymind.core.message import Message
 from polymind.core.tool import BaseTool, Param
-from polymind.tools.oai_tool import OpenAIEmbeddingTool
+from polymind.tools.llm_tool import OpenAIEmbeddingTool
 
 
 class ToolIndexer(Indexer):
@@ -193,3 +193,16 @@ class ToolRetriever(BaseTool):
         embedding = await self.embedder._embedding([requirement])
         candidates = self._find_top_k_candidates(embedding)
         return Message(content={"candidates": candidates})
+
+
+class ToolCreator(BaseTool):
+    tool_name: str = "tool-creator"
+
+    descriptions: List[str] = [
+        "ToolCreator is a tool to generate the tool code based on the requirement",
+        "ToolCreator is a tool to create the tool.",
+        "ToolCreator is a codegen tool to generate the tool code based on the requirement.",
+    ]
+
+    async def _execute(self, input_message: Message) -> Message:
+        requirement = input_message.content["requirement"]

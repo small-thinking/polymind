@@ -6,4 +6,4 @@ from .core.task import BaseTask, CompositeTask, SequentialTask
 from .core.tool import BaseTool
 
 # Expose the tools
-from .tools.oai_tool import OpenAIChatTool
+from .tools.llm_tool import OpenAIChatTool

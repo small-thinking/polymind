@@ -13,7 +13,7 @@ import numpy as np
 import pytest
 
 from polymind.core.message import Message
-from polymind.tools.oai_tool import OpenAIEmbeddingTool
+from polymind.tools.llm_tool import OpenAIEmbeddingTool
 from polymind.tools.tool_management_tool import ToolIndexer, ToolRetriever
 
 
