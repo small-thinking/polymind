@@ -67,6 +67,7 @@ class LLMTool(BaseTool, ABC):
                 "max_tokens": self.max_tokens,
                 "temperature": self.temperature,
                 "top_p": self.top_p,
+                "system_prompt": system_prompt,
             }
         )
         if self.stop:

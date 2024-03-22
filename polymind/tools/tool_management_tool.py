@@ -11,8 +11,7 @@ from polymind.core.embedder import Embedder
 from polymind.core.indexer import Indexer
 from polymind.core.message import Message
 from polymind.core.tool import BaseTool, Param
-from polymind.tools.llm_tool import (LLMTool, OpenAIChatTool,
-                                     OpenAIEmbeddingTool)
+from polymind.tools.llm_tool import LLMTool, OpenAIChatTool, OpenAIEmbeddingTool
 
 
 class ToolIndexer(Indexer):
@@ -215,10 +214,10 @@ class ToolCreator(BaseTool):
         You are a code generator. You are given a requirement to create a tool.
         The generated tool should inherit the below BaseTool class.
         Please put your answer into a ```python``` code block.
-        
+
         --- python below ---
         # File: {{tool_name}}.py
-        
+
         class BaseTool(BaseModel, ABC):
             '''The base class of the tool.
             In an agent system, a tool is an object that can be used to perform a task.
@@ -312,12 +311,11 @@ class ToolCreator(BaseTool):
                 '''
                 pass
         --- python above ---
-        
+
         In addition to any needed package, the implementation should also import the below packages:
-        
+
         from polymind.core.message import Message
-        from polymind.core.tool import BaseTool, Param  
-        
+        from polymind.core.tool import BaseTool, Param
         """,
         description="The system prompt to generate the tool code.",
     )
