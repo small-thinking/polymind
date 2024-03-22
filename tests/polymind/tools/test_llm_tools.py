@@ -69,6 +69,24 @@ class TestOpenAIChatTool:
                 "type": "str",
                 "description": "The prompt for the chat.",
                 "example": "hello, how are you?"
+            },
+            {
+                "name": "max_tokens",
+                "type": "int",
+                "description": "The maximum number of tokens for the chat.",
+                "example": "1500"
+            },
+            {
+                "name": "temperature",
+                "type": "float",
+                "description": "The temperature for the chat.",
+                "example": "0.7"
+            },
+            {
+                "name": "top_p",
+                "type": "float",
+                "description": "The top p for the chat.",
+                "example": "0.1"
             }
         ],
         "output_message": [

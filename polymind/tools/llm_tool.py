@@ -126,6 +126,24 @@ class OpenAIChatTool(LLMTool):
                 example="hello, how are you?",
                 description="The prompt for the chat.",
             ),
+            Param(
+                name="max_tokens",
+                type="int",
+                example="1500",
+                description="The maximum number of tokens for the chat.",
+            ),
+            Param(
+                name="temperature",
+                type="float",
+                example="0.7",
+                description="The temperature for the chat.",
+            ),
+            Param(
+                name="top_p",
+                type="float",
+                example="0.1",
+                description="The top p for the chat.",
+            ),
         ]
 
     def output_spec(self) -> List[Param]:
@@ -161,7 +179,7 @@ class OpenAIChatTool(LLMTool):
             Message: The result of the tool carried in a message.
         """
         prompt = input.get("prompt", "")
-        system_prompt = input.get("system_prompt", "")
+        system_prompt = input.get("system_prompt", self.system_prompt)
         temperature = input.get("temperature", self.temperature)
         max_tokens = input.get("max_tokens", self.max_tokens)
         top_p = input.get("top_p", self.top_p)
