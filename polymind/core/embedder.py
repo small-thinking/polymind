@@ -15,7 +15,7 @@ class Embedder(BaseTool, ABC):
     """The embedder is a tool to generate the embedding for the input."""
 
     tool_name: str = "embedder"
-    embed_dim: int = Field(default=768, description="The dimension of the embedding.")
+    embed_dim: int = Field(default=384, description="The embedding dimension.")
 
     def input_spec(self) -> List[Param]:
         return [

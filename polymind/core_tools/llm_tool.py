@@ -189,6 +189,7 @@ class OpenAIEmbeddingTool(Embedder):
                 "method": "POST",
                 "headers": headers,
                 "body": body,
+                "dimensions": self.embed_dim,
             }
         )
         # Call the RESTful API
