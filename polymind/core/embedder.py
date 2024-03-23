@@ -5,6 +5,7 @@ from abc import ABC, abstractmethod
 from typing import List
 
 import numpy as np
+from pydantic import Field
 
 from polymind.core.message import Message
 from polymind.core.tool import BaseTool, Param
@@ -14,6 +15,7 @@ class Embedder(BaseTool, ABC):
     """The embedder is a tool to generate the embedding for the input."""
 
     tool_name: str = "embedder"
+    embed_dim: int = Field(default=768, description="The dimension of the embedding.")
 
     def input_spec(self) -> List[Param]:
         return [
