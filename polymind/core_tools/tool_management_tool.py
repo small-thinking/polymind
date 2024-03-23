@@ -19,7 +19,7 @@ class ToolIndexer(Indexer):
     """Indexer for the learned tools."""
 
     tool_name: str = "tool-indexer"
-    learned_tool_folder: str = Field(default="knowledge/tools", description="The folder to store the learned tools.")
+    learned_tool_folder: str = Field(default="./knowledge/tools", description="The folder to store the learned tools.")
 
     embedder: Embedder = OpenAIEmbeddingTool()
 
