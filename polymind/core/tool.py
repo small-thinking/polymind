@@ -7,6 +7,7 @@ from dotenv import load_dotenv
 from pydantic import BaseModel, Field, field_validator
 
 from polymind.core.message import Message
+from polymind.core.utils import Logger
 
 
 class Param(BaseModel):
@@ -167,6 +168,7 @@ class LLMTool(BaseTool, ABC):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self._logger = Logger(__file__)
         self._set_client()
 
     @abstractmethod
@@ -186,6 +188,9 @@ class LLMTool(BaseTool, ABC):
                 - temperature: The temperature for the chat.
                 - top_p: The top p for the chat.
                 - stop: The stop sequence for the chat.
+
+        Returns:
+            Message: The response message from the language model. The actual content is in the "answer" field.
         """
         pass
 
@@ -211,4 +216,6 @@ class LLMTool(BaseTool, ABC):
             input.content["stop"] = self.stop
 
         response_message = await self._invoke(input)
+        if "answer" not in response_message.content:
+            raise ValueError("The response message must contain the 'answer' key.")
         return response_message

@@ -21,7 +21,7 @@ class OpenAIChatTool(LLMTool):
     The tool can be initialized with llm_name, system_prompt, max_tokens, and temperature.
     The input message of this tool should contain a "prompt", and optionally a "system_prompt".
     The "system_prompt" in the input message will override the default system_prompt.
-    The tool will return a message with the response from the OpenAI chat API.
+    The tool will return a message with key "answer" with the response from the OpenAI chat API.
     """
 
     model_config = {
@@ -137,7 +137,7 @@ class OpenAIChatTool(LLMTool):
             stop=stop,
         )
         content = response.choices[0].message.content
-        response_message = Message(content={"response": content})
+        response_message = Message(content={"answer": content})
         return response_message
 
 

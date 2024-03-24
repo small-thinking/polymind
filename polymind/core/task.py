@@ -1,11 +1,13 @@
+import json
+import re
 from abc import ABC, abstractmethod
-from typing import List
+from typing import List, Optional
 
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 
 from polymind.core.message import Message
-from polymind.core.tool import BaseTool
+from polymind.core.tool import BaseTool, LLMTool
 
 
 class BaseTask(BaseModel, ABC):
@@ -17,9 +19,9 @@ class BaseTask(BaseModel, ABC):
     """
 
     task_name: str = Field(description="The name of the task.")
-    tool: BaseTool = Field(description="The tool to use for the task.")
+    tool: Optional[BaseTool] = Field(default=None, description="The tool to use for the task.")
 
-    def __init__(self, task_name: str, tool: BaseTool, **kwargs):
+    def __init__(self, task_name: str, tool: Optional[BaseTool] = None, **kwargs):
         load_dotenv(override=True)
         super().__init__(task_name=task_name, tool=tool, **kwargs)
 
@@ -47,6 +49,54 @@ class BaseTask(BaseModel, ABC):
             Message: The result of the task carried in a message.
         """
         pass
+
+
+class SimpleTask(BaseTask):
+    """The task that can be fulfilled by an LLM inference."""
+
+    tool: LLMTool = Field(description="The LLM tool to use for the task.")
+    task_name: str = Field(default="simple-task", description="The name of the task.")
+
+    system_prompt: str = """
+        Please help answer the below question, and put your answer into the ```json``` format.
+
+        An example of the question is as follows:
+        What's the height of the Eiffel Tower?
+
+        Answer:
+        ```json
+        {
+            "answer": "330 meters"
+        }
+        ```
+    """
+
+    async def _execute(self, input: Message) -> Message:
+        """Execute the task and return the result.
+
+        Args:
+            input (Message): The input to the task carried in a message.
+
+        Returns:
+            Message: The result of the task carried in a message.
+        """
+        if "prompt" not in input.content:
+            raise ValueError("The input message must contain the prompt.")
+        prompt = input.content["prompt"]
+        enhanced_prompt = f"""
+            {self.system_prompt}
+            ---
+            {prompt}
+            ---
+        """
+        llm_response = await self.tool(Message(content={"prompt": enhanced_prompt}))
+        # Extract the answer from the ```json blob```.
+        answers = re.findall(r"```json(.*?)```", llm_response.content["text"], re.DOTALL)
+        if not answers:
+            raise ValueError("Cannot find the answer in the response.")
+        answer_blob = json.loads(answers[0])
+        response = Message(content={"answer": answer_blob["answer"]})
+        return response
 
 
 class CompositeTask(BaseTask, ABC):
@@ -97,10 +147,11 @@ class CompositeTask(BaseTask, ABC):
 
 class SequentialTask(CompositeTask):
 
+    task_name: str = Field(default="sequential-task", description="The name of the task.")
     tasks: List[BaseTask] = Field(default_factory=list)
 
-    def __init__(self, task_name: str, tool: BaseTool, tasks: List[BaseTask]):
-        super().__init__(task_name=task_name, tool=tool)
+    def __init__(self, tasks: List[BaseTask], task_name: str = "sequential-task", **kwargs):
+        super().__init__(task_name=task_name, **kwargs)
         self.tasks = tasks
 
     def _update_context(self) -> None:

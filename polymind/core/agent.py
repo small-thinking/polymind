@@ -15,10 +15,12 @@ class ThoughtProcess(BaseModel, ABC):
     And it will leverage tools (including LLM, data sources, code interpretor, etc.) to perform the tasks.
     """
 
+    model_config = {"arbitrary_types_allowed": True}
+
     thought_process_name: str
 
     reasoner: LLMTool = Field(default=None, description="The reasoner that will be used in the thought process.")
-    tools: Dict[str, BaseTool]
+    tools: Dict[str, BaseTool] = Field(default=None, description="The tools that will be used in the thought process.")
 
     def __str__(self):
         return self.thought_process_name
@@ -57,7 +59,7 @@ class Agent(BaseModel):
     agent_name: str
     # Persona of the agent indicates the role of the agent.
     persona: str
-    tools: Dict[str, BaseTool]
+    tools: Dict[str, BaseTool] = Field(default=None, description="The tools that the agent can use.")
     thought_process: Optional[ThoughtProcess] = None
 
     def __str__(self):
