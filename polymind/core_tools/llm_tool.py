@@ -181,6 +181,7 @@ class OpenAIEmbeddingTool(Embedder):
         body = {
             "model": self.embedding_model,
             "input": input,
+            "dimension": self.embed_dim,
         }
         input_message = Message(
             content={
@@ -198,5 +199,7 @@ class OpenAIEmbeddingTool(Embedder):
         if "error" in response or output_message.content.get("status_code") != 200:
             error_message = response.get("error", "Failed to retrieve embeddings")
             raise Exception(error_message)
-        embeddings: List[List[float]] = [entry.get("embedding", []) for entry in response.get("data", [])]
+        # Reduce the dimension of the embedding
+        embedding_list = [entry.get("embedding", []) for entry in response.get("data", [])]
+        embeddings: List[List[float]] = [embedding[: self.embed_dim] for embedding in embedding_list]
         return np.array(embeddings)
