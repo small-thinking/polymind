@@ -14,7 +14,7 @@ class Param(BaseModel):
 
     name: str = Field(description="The name of the parameter.")
     type: str = Field(
-        description="""The type of the parameter: 
+        description="""The type of the parameter:
         str, int, float, bool, Dict[KeyType, ValueType], List[ElementType].
         """
     )

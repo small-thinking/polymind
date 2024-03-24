@@ -149,9 +149,12 @@ class KnowledgeRetrieveTool(RetrieveTool):
         }
         search_results = self.client.search(**search_params)
         results = []
-        for result in search_results:
-            result_dict = dict(zip(self.keys_to_retrieve, result))
-            results.append(result_dict)
+        for hits in search_results:
+            for hit in hits:
+                result = {}
+                for key in self.keys_to_retrieve:
+                    result[key] = hit.get("entity").get(key)
+                results.append(result)
         # Construct the response message.
         response_message = Message(
             content={
@@ -185,6 +188,7 @@ class KnowledgeIndexTool(IndexTool):
         self.client = MilvusClient(uri=f"http://{host}:{port}")
         if self.recreate_collection:
             self.client.drop_collection(self.collection_name)
+            assert False
         self.client.create_collection(
             self.collection_name, dimension=self.embed_dim, consistency_level="Bounded", auto_id=True
         )
