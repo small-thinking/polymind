@@ -44,9 +44,7 @@ class Logger:
             self.logging_level = Logger.LoggingLevel[os.getenv("LOGGING_LEVEL", "TOOL")]
             self.logger = logging.getLogger(logger_name)
             self.logger.setLevel(level=level)
-            self.formatter = logging.Formatter(
-                "%(asctime)s %(levelname)s %(name)s %(message)s (%(filename)s:%(lineno)d)"
-            )
+            self.formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s (%(filename)s:%(lineno)d)")
             self.console_handler = logging.StreamHandler()
             self.console_handler.setLevel(level=level)
             self.console_handler.setFormatter(self.formatter)
