@@ -17,6 +17,8 @@ class ChainOfTasks(ThoughtProcess):
     It is similar to Chain-of-Thought prompting, but operates at a higher level.
     Chain-of-Thought makes the LLM to conduct a multi-step reasoning in one inference,
     while ChainOfTasks breaks down the problem into a series of tasks and executes them one by one.
+
+    Note: The input to this thought process must contain a 'requirement' field.
     """
 
     thought_process_name: str = "ChainOfTasks"
@@ -28,6 +30,7 @@ class ChainOfTasks(ThoughtProcess):
 
     problem_decomposition_prompt: str = """
         Please decompose the problem into 1-5 steps, depending on the complexity of the problem.
+        Each of the following sub-task will use the output of the previous task as input.
         Please write down your decomposition into the ```json list```.
         For each step, please give it an "objective", "input" and "output".
         For input and output, please describe the type as well.
@@ -36,7 +39,6 @@ class ChainOfTasks(ThoughtProcess):
 
         The question: The south neighbor country of the country whose capital is Paris.
 
-        ```json
         {
             "steps": [
                 {
@@ -51,19 +53,17 @@ class ChainOfTasks(ThoughtProcess):
                 }
             ]
         }
-
-        ```
     """
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self._logger = Logger(__file__)
-        self.reasoner = OpenAIChatTool()
+        self.reasoner = OpenAIChatTool(response_format="json_object")
 
     async def _breakdown_problem(self, input: Message) -> List[Dict[str, str]]:
         """Break down the problem into a series of tasks."""
         if "requirement" not in input.content:
-            raise ValueError("The input message must contain the requirement.")
+            raise ValueError("The input message must contain the 'requirement' field.")
         self._logger.thought_process_log("Breaking down the problem into a series of tasks...")
         retry = 0
         while retry < self.retries:
@@ -71,7 +71,7 @@ class ChainOfTasks(ThoughtProcess):
                 response = await self.reasoner(
                     Message(
                         content={
-                            "prompt": input.content["requirement"],
+                            "input": input.content["requirement"],
                             "system_prompt": self.problem_decomposition_prompt,
                         }
                     )
@@ -82,12 +82,14 @@ class ChainOfTasks(ThoughtProcess):
                 continue
             try:
                 # Extract the steps from the ```json list blob```.
-                text = response.content["answer"]
+                text = response.content["output"]
                 self._logger.thought_process_log(f"Response from the reasoner: {text}")
-                steps = re.findall(r"```json(.*?)```", text, re.DOTALL)[0]
-                if not steps:
-                    raise ValueError("Cannot find the steps in the response.")
-                steps_json = json.loads(steps.strip())
+                if "```" in text:
+                    steps = re.findall(r"```json(.*?)```", text, re.DOTALL)[0]
+                    if not steps:
+                        raise ValueError("Cannot find the steps in the response.")
+                    text = steps.strip()
+                steps_json = json.loads(text)
                 tasks = []
                 for step in steps_json["steps"]:
                     tasks.append(
@@ -115,7 +117,6 @@ class ChainOfTasks(ThoughtProcess):
             task = SimpleTask(
                 tool=self.reasoner,
                 task_name=task_meta["objective"],
-                system_prompt=self.problem_decomposition_prompt,
             )
             tasks.append(task)
             self._logger.task_log(f"Task {idx + 1}: {task_meta['objective']} constructed.")
@@ -128,7 +129,7 @@ class ChainOfTasks(ThoughtProcess):
         # Execute the tasks in sequence.
         task_message = await sequence_tasks(input)
         # Extract the final answer from the response message.
-        if "answer" not in task_message.content:
-            raise ValueError("The response message must contain the 'answer' key.")
-        response_message = Message(content={"answer": task_message.content["answer"]})
+        if "output" not in task_message.content:
+            raise ValueError("The response message must contain the 'output' key.")
+        response_message = Message(content={"output": task_message.content["output"]})
         return response_message

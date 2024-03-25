@@ -13,6 +13,7 @@ from pydantic import Field
 from polymind.core.embedder import Embedder
 from polymind.core.message import Message
 from polymind.core.tool import BaseTool, LLMTool, Param
+from polymind.core.utils import Logger
 from polymind.core_tools.rest_api_tool import RestAPITool
 
 
@@ -41,6 +42,11 @@ class OpenAIChatTool(LLMTool):
     max_tokens: int = Field(default=1500)
     temperature: float = Field(default=0.7)
     stop: str = Field(default=None)
+    response_format: str = Field(default="text", description="The format of the response from the chat.")
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._logger = Logger(__file__)
 
     def _set_client(self):
         """Set the client for the language model."""
@@ -61,7 +67,7 @@ class OpenAIChatTool(LLMTool):
                 description="The system prompt for the chat.",
             ),
             Param(
-                name="prompt",
+                name="input",
                 type="str",
                 example="hello, how are you?",
                 description="The prompt for the chat.",
@@ -95,7 +101,7 @@ class OpenAIChatTool(LLMTool):
         """
         return [
             Param(
-                name="response",
+                name="output",
                 type="str",
                 example="I'm good, how are you?",
                 description="The response from the chat.",
@@ -118,26 +124,30 @@ class OpenAIChatTool(LLMTool):
         Returns:
             Message: The result of the tool carried in a message.
         """
-        prompt = input.get("prompt", "")
+        prompt = input.get("input", "")
         system_prompt = input.get("system_prompt", self.system_prompt)
         temperature = input.get("temperature", self.temperature)
         max_tokens = input.get("max_tokens", self.max_tokens)
         top_p = input.get("top_p", self.top_p)
         stop = input.get("stop", self.stop)
 
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt},
+        ]
+
         response = await self.client.chat.completions.create(
             model=self.llm_name,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": prompt},
-            ],
+            messages=messages,
             temperature=temperature,
             max_tokens=max_tokens,
             top_p=top_p,
             stop=stop,
+            response_format={"type": self.response_format},
         )
         content = response.choices[0].message.content
-        response_message = Message(content={"answer": content})
+        self._logger.tool_log(f"[{self.tool_name}], Response from OpenAI: [{content}]")
+        response_message = Message(content={"output": content})
         return response_message
 
 

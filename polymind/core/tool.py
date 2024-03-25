@@ -156,7 +156,9 @@ class BaseTool(BaseModel, ABC):
 
 
 class LLMTool(BaseTool, ABC):
-    """LLM tool defines the basic properties of the language model tools."""
+    """LLM tool defines the basic properties of the language model tools.
+    This tool will get the prompt from "input" and return the response to "output".
+    """
 
     max_tokens: int = Field(..., description="The maximum number of tokens for the chat.")
     temperature: float = Field(default=1.0, description="The temperature for the chat.")
@@ -200,10 +202,10 @@ class LLMTool(BaseTool, ABC):
         """
 
         # Validate the input message.
-        prompt = input.get("prompt", "")
+        prompt = input.get("input", "")
         system_prompt = input.get("system_prompt", self.system_prompt)
         if not prompt:
-            raise ValueError("Prompt cannot be empty.")
+            raise ValueError("Prompt in the field 'input' cannot be empty.")
         input.content.update(
             {
                 "max_tokens": self.max_tokens,
@@ -216,6 +218,6 @@ class LLMTool(BaseTool, ABC):
             input.content["stop"] = self.stop
 
         response_message = await self._invoke(input)
-        if "answer" not in response_message.content:
-            raise ValueError("The response message must contain the 'answer' key.")
+        if "output" not in response_message.content:
+            raise ValueError("The response message must contain the 'output' key.")
         return response_message

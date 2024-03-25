@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 
 from polymind.core.message import Message
 from polymind.core.tool import BaseTool, LLMTool
+from polymind.core.utils import Logger
 
 
 class BaseTask(BaseModel, ABC):
@@ -24,18 +25,27 @@ class BaseTask(BaseModel, ABC):
     def __init__(self, task_name: str, tool: Optional[BaseTool] = None, **kwargs):
         load_dotenv(override=True)
         super().__init__(task_name=task_name, tool=tool, **kwargs)
+        self._logger = Logger(__file__)
 
     async def __call__(self, input: Message) -> Message:
         """Makes the instance callable, delegating to the execute method.
         This allows the instance to be used as a callable object, simplifying the syntax for executing the task.
 
         Args:
-            input (Message): The input message to the task.
+            input (Message): The input message to the task. It must contains a prompt in "input" field.
 
         Returns:
-            Message: The output message from the task.
+            Message: The output message from the task. It will at least have an "output" field.
         """
-        return await self._execute(input)
+        # if "input" not in input.content:
+        #     raise ValueError(f"In task {self.task_name}, The input message must contain the input.")
+        if "input" in input.content:
+            self._logger.task_log(f"[{self.task_name}] input: {input.content['input']}")
+        response = await self._execute(input)
+        self._logger.task_log(f"[{self.task_name}] output: {response.content['output']}")
+        # if "output" not in response.content:
+        #     raise ValueError(f"In task {self.task_name}, The output message must contain the output.")
+        return response
 
     @abstractmethod
     async def _execute(self, input: Message) -> Message:
@@ -58,17 +68,23 @@ class SimpleTask(BaseTask):
     task_name: str = Field(default="simple-task", description="The name of the task.")
 
     system_prompt: str = """
-        Please help answer the below question, and put your answer into the ```json``` format.
+        Please help answer the below question, and put your answer into the json` format.
+        The result should be put as the key "output".
 
-        An example of the question is as follows:
-        What's the height of the Eiffel Tower?
+        Some examples questions and answers are as follows:
+        1. What's the height of the Eiffel Tower?
 
         Answer:
-        ```json
         {
-            "answer": "330 meters"
+            "output": "330 meters"
         }
-        ```
+
+        2. What's the top 3 countries by population?
+
+        Answer:
+        {
+            "output": ["China", "India", "United States"]
+        }
     """
 
     async def _execute(self, input: Message) -> Message:
@@ -80,22 +96,26 @@ class SimpleTask(BaseTask):
         Returns:
             Message: The result of the task carried in a message.
         """
-        if "prompt" not in input.content:
-            raise ValueError("The input message must contain the prompt.")
-        prompt = input.content["prompt"]
+        # Task objective should be part of the input.
+        input_field = str(input.content.get("input", ""))
+        input.content["input"] = f"Objective: {self.task_name}\n" + input_field
+        prompt = input.content["input"]
         enhanced_prompt = f"""
             {self.system_prompt}
             ---
             {prompt}
             ---
         """
-        llm_response = await self.tool(Message(content={"prompt": enhanced_prompt}))
+        llm_response = await self.tool(Message(content={"input": enhanced_prompt}))
+        content = llm_response.content["output"]
         # Extract the answer from the ```json blob```.
-        answers = re.findall(r"```json(.*?)```", llm_response.content["text"], re.DOTALL)
-        if not answers:
-            raise ValueError("Cannot find the answer in the response.")
-        answer_blob = json.loads(answers[0])
-        response = Message(content={"answer": answer_blob["answer"]})
+        if "```" in content:
+            answers = re.findall(r"```json(.*?)```", content, re.DOTALL)
+            if not answers:
+                raise ValueError("Cannot find the answer in the response.")
+            content = answers[0]
+        answer_blob = json.loads(content)
+        response = Message(content={"output": answer_blob["output"]})
         return response
 
 
@@ -122,12 +142,13 @@ class CompositeTask(BaseTask, ABC):
         pass
 
     @abstractmethod
-    def _update_context(self) -> None:
+    def _update_context(self, input: Message) -> Message:
         """Update the context of the composite task."""
         pass
 
     async def _execute(self, input: Message) -> Message:
         """Execute the composite task and return the result.
+        The logic of task execution is implemented as an iterator pattern.
 
         Args:
             input (Message): The input to the composite task carried in a message.
@@ -136,31 +157,57 @@ class CompositeTask(BaseTask, ABC):
             Message: The result of the composite task carried in a message.
         """
         message = input
-        self._update_context()
+        self._update_context(input=message)
         task = self._get_next_task(message)
         while task:
             message = await task(message)
-            self._update_context()
-            task = self._get_next_task(message)
-        return message
+            output_message = self._update_context(input=message)
+            task = self._get_next_task(output_message)
+        return output_message
 
 
 class SequentialTask(CompositeTask):
+    """A sequential task that executes a list of tasks in order."""
 
     task_name: str = Field(default="sequential-task", description="The name of the task.")
     tasks: List[BaseTask] = Field(default_factory=list)
 
     def __init__(self, tasks: List[BaseTask], task_name: str = "sequential-task", **kwargs):
+        """Initializes a SequentialTask object.
+
+        Args:
+            tasks (List[BaseTask]): The list of tasks to be executed sequentially.
+            task_name (str, optional): The name of the task. Defaults to "sequential-task".
+            **kwargs: Additional keyword arguments.
+        """
         super().__init__(task_name=task_name, **kwargs)
         self.tasks = tasks
 
-    def _update_context(self) -> None:
+    def _update_context(self, input: Message) -> None:
+        """Updates the context of the task.
+
+        This function increments the index in the context by 1.
+        If the context is empty, it initializes the index to 0.
+        """
+        # Change output to input.
+        if "output" in input.content:
+            input.content["input"] = input.content["output"]
         if not bool(self.context.content):
             self.context = Message(content={"idx": 0})
         else:
             self.context.content["idx"] += 1
+        return input
 
     def _get_next_task(self, input: Message) -> BaseTask:
+        """
+        Retrieves the next task to be executed.
+
+        Args:
+            input (Message): The input message.
+
+        Returns:
+            BaseTask: The next task to be executed, or None if all tasks have been executed.
+        """
         if self.context.content["idx"] < len(self.tasks):
             return self.tasks[self.context.content["idx"]]
         else:

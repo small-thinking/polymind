@@ -18,6 +18,8 @@ class Logger:
         TASK = 4
         THOUGHT_PROCESS = 5
         WARNING = 6
+        ERROR = 7
+        CRITICAL = 8
 
         def __lt__(self, other):
             return self.value < other.value

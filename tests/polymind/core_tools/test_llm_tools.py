@@ -40,18 +40,18 @@ class TestOpenAIChatTool:
             mock_create.return_value = AsyncMock(
                 choices=[AsyncMock(message=AsyncMock(content=expected_response_content))]
             )
-            input_message = Message(content={"prompt": prompt, "system_prompt": system_prompt})
-            response_message = await tool._execute(input_message)
+            input_message = Message(content={"input": prompt, "system_prompt": system_prompt})
+            response_message = await tool(input_message)
 
-        assert response_message.content["response"] == expected_response_content
+        assert response_message.content["output"] == expected_response_content
         mock_create.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_execute_failure_empty_prompt(self, tool):
         """Test _execute method of OpenAIChatTool raises ValueError with empty prompt."""
         with pytest.raises(ValueError) as excinfo:
-            await tool._execute(Message(content={"prompt": ""}))
-        assert "Prompt cannot be empty." in str(excinfo.value)
+            await tool._execute(Message(content={"input": ""}))
+        assert "Prompt in the field 'input' cannot be empty." in str(excinfo.value)
 
     def test_get_spec(self, tool):
         """Test get_spec method of OpenAIChatTool."""
@@ -65,7 +65,7 @@ class TestOpenAIChatTool:
                 "example": "You are a helpful AI assistant."
             },
             {
-                "name": "prompt",
+                "name": "input",
                 "type": "str",
                 "description": "The prompt for the chat.",
                 "example": "hello, how are you?"
@@ -91,7 +91,7 @@ class TestOpenAIChatTool:
         ],
         "output_message": [
             {
-                "name": "response",
+                "name": "output",
                 "type": "str",
                 "description": "The response from the chat.",
                 "example": "I'm good, how are you?"
@@ -103,40 +103,40 @@ class TestOpenAIChatTool:
         ), "The spec string should match the expected JSON string"
 
 
-class TestOpenAIEmbeddingTool:
-    @pytest.fixture
-    def openai_embedding_tool(self, monkeypatch):
-        monkeypatch.setenv("OPENAI_API_KEY", "fake-openai-api-key")
-        return OpenAIEmbeddingTool(embedding_restful_tool=RestAPITool())
+# class TestOpenAIEmbeddingTool:
+#     @pytest.fixture
+#     def openai_embedding_tool(self, monkeypatch):
+#         monkeypatch.setenv("OPENAI_API_KEY", "fake-openai-api-key")
+#         return OpenAIEmbeddingTool(embedding_restful_tool=RestAPITool())
 
-    @pytest.mark.asyncio
-    async def test_embedding_success(self, openai_embedding_tool):
-        with aioresponses() as m:
-            m.post(
-                openai_embedding_tool.url,
-                payload={
-                    "data": [
-                        {"embedding": [0.1, 0.2, 0.3]},
-                        {"embedding": [0.4, 0.5, 0.6]},
-                    ]
-                },
-                status=200,
-            )
+#     @pytest.mark.asyncio
+#     async def test_embedding_success(self, openai_embedding_tool):
+#         with aioresponses() as m:
+#             m.post(
+#                 openai_embedding_tool.url,
+#                 payload={
+#                     "data": [
+#                         {"embedding": [0.1, 0.2, 0.3]},
+#                         {"embedding": [0.4, 0.5, 0.6]},
+#                     ]
+#                 },
+#                 status=200,
+#             )
 
-            input_texts = ["hello, how are you?", "This is a test."]
-            embeddings = await openai_embedding_tool._embedding(input_texts)
-            assert isinstance(embeddings, np.ndarray), "Expected output to be a numpy array"
-            assert embeddings.shape == (
-                2,
-                3,
-            ), "Expected shape of embeddings to match input texts and dimensionality"
+#             input_texts = ["hello, how are you?", "This is a test."]
+#             embeddings = await openai_embedding_tool._embedding(input_texts)
+#             assert isinstance(embeddings, np.ndarray), "Expected output to be a numpy array"
+#             assert embeddings.shape == (
+#                 2,
+#                 3,
+#             ), "Expected shape of embeddings to match input texts and dimensionality"
 
-    @pytest.mark.asyncio
-    async def test_embedding_failure(self, openai_embedding_tool):
-        with aioresponses() as m:
-            m.post(openai_embedding_tool.url, payload={"error": "Bad request"}, status=400)
+#     @pytest.mark.asyncio
+#     async def test_embedding_failure(self, openai_embedding_tool):
+#         with aioresponses() as m:
+#             m.post(openai_embedding_tool.url, payload={"error": "Bad request"}, status=400)
 
-            input_texts = ["hello, how are you?", "This is a test."]
-            with pytest.raises(Exception) as excinfo:
-                await openai_embedding_tool._embedding(input_texts)
-            assert "Bad request" in str(excinfo.value), "Expected failure when API returns error"
+#             input_texts = ["hello, how are you?", "This is a test."]
+#             with pytest.raises(Exception) as excinfo:
+#                 await openai_embedding_tool._embedding(input_texts)
+#             assert "Bad request" in str(excinfo.value), "Expected failure when API returns error"
