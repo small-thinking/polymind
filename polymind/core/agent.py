@@ -5,6 +5,7 @@ from pydantic import BaseModel, Field
 
 from polymind.core.message import Message
 from polymind.core.tool import BaseTool
+from polymind.core.utils import Logger
 from polymind.core_tools.llm_tool import LLMTool
 
 
@@ -15,10 +16,16 @@ class ThoughtProcess(BaseModel, ABC):
     And it will leverage tools (including LLM, data sources, code interpretor, etc.) to perform the tasks.
     """
 
+    model_config = {"arbitrary_types_allowed": True}
+
     thought_process_name: str
 
     reasoner: LLMTool = Field(default=None, description="The reasoner that will be used in the thought process.")
-    tools: Dict[str, BaseTool]
+    tools: Dict[str, BaseTool] = Field(default=None, description="The tools that will be used in the thought process.")
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._logger = Logger(__file__)
 
     def __str__(self):
         return self.thought_process_name
@@ -30,11 +37,16 @@ class ThoughtProcess(BaseModel, ABC):
 
         Args:
             agent (Agent): The agent who is executing the thought process.
-            input (Message): The input message to the thought process.
+            input (Message): The input message to the thought process. The message must contain the 'input'.
 
         Returns:
             Message: The output message from the thought process.
         """
+        if "requirement" in input.content:
+            self._logger.thought_process_log(
+                f"[{self.thought_process_name}], your requirement is: {input.content['requirement']}"
+            )
+
         return await self._execute(agent=agent, input=input)
 
     @abstractmethod
@@ -57,8 +69,11 @@ class Agent(BaseModel):
     agent_name: str
     # Persona of the agent indicates the role of the agent.
     persona: str
-    tools: Dict[str, BaseTool]
+    tools: Dict[str, BaseTool] = Field(default=None, description="The tools that the agent can use.")
     thought_process: Optional[ThoughtProcess] = None
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
 
     def __str__(self):
         return self.agent_name

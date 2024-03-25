@@ -24,15 +24,20 @@ def load_env_vars():
 
 
 class MockTool(BaseTool):
-    """The role of MockTool is to reverse the query and append the tool_name to the "tools_executed" list."""
+    """The role of MockTool is to append the tool_name to the "tools_executed",
+    it also appends the environment variable to the "env_tool" list.
+    """
 
     descriptions: List[str] = ["Mock tool for testing"]
 
     def input_spec(self) -> List[Param]:
-        return [Param(name="query", type="str", example="", description="The query to reverse")]
+        return [Param(name="input", type="str", example="", description="The query to reverse")]
 
     def output_spec(self) -> List[Param]:
-        return [Param(name="result", type="str", example="", description="The reversed query")]
+        return [
+            Param(name="tools_executed", type="List[str]", example="", description="The reversed query"),
+            Param(name="env_tool", type="List[str]", example="", description="The reversed query"),
+        ]
 
     async def _execute(self, input: Message) -> Message:
         # Get the environment variable or use a default value
@@ -79,6 +84,9 @@ class TestSequentialTask:
         assert result_message.content["tools_executed"] == [
             f"Tool{i}" for i in range(num_tasks)
         ], "Tools executed in incorrect order"
+        assert result_message.content["tasks_executed"] == [
+            f"Task{i}" for i in range(num_tasks)
+        ], "Tasks executed in incorrect order"
         assert all(
             env_value == "test_tool" for env_value in result_message.content["env_tool"]
         ), "Tool environment variable not loaded correctly"
