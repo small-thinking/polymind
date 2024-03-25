@@ -135,7 +135,8 @@ class OpenAIChatTool(LLMTool):
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": prompt},
         ]
-
+        self._logger.tool_log(f"[{self.tool_name}], System Prompt: [{system_prompt}]")
+        self._logger.tool_log(f"[{self.tool_name}], Prompt: [{prompt}]")
         response = await self.client.chat.completions.create(
             model=self.llm_name,
             messages=messages,

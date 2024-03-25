@@ -66,25 +66,28 @@ class SimpleTask(BaseTask):
 
     tool: LLMTool = Field(description="The LLM tool to use for the task.")
     task_name: str = Field(default="simple-task", description="The name of the task.")
+    task_context: str = Field(default="", description="The context of the task.")
 
     system_prompt: str = """
         Please help answer the below question, and put your answer into the json` format.
         The result should be put as the key "output".
 
         Some examples questions and answers are as follows:
+        --- start of example ---
         1. What's the height of the Eiffel Tower?
 
         Answer:
         {
-            "output": "330 meters"
+            "output": {"context": "height of Eiffel", "answer": "330 meters"}
         }
 
         2. What's the top 3 countries by population?
 
         Answer:
         {
-            "output": ["China", "India", "United States"]
+            "output": {"context": "top 3 countries by population", "answer": ["China", "India", "United States"]}
         }
+        --- end of example ---
     """
 
     async def _execute(self, input: Message) -> Message:
@@ -98,7 +101,14 @@ class SimpleTask(BaseTask):
         """
         # Task objective should be part of the input.
         input_field = str(input.content.get("input", ""))
-        input.content["input"] = f"Objective: {self.task_name}\n" + input_field
+        input.content[
+            "input"
+        ] = f"""
+            Context: {self.task_context}
+            Input from the previous step:
+            {input_field}
+            Objective: {self.task_name}
+        """
         prompt = input.content["input"]
         enhanced_prompt = f"""
             {self.system_prompt}

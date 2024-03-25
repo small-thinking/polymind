@@ -30,10 +30,14 @@ class ChainOfTasks(ThoughtProcess):
 
     problem_decomposition_prompt: str = """
         Please decompose the problem into 1-5 steps, depending on the complexity of the problem.
+
         Each of the following sub-task will use the output of the previous task as input.
-        Please write down your decomposition into the ```json list```.
+
+        Please write down your decomposition into the json blob.
         For each step, please give it an "objective", "input" and "output".
-        For input and output, please describe the type as well.
+        FOr the objective, please make it less ambiguous and more specific.
+        And make it to explain how to use the input.
+        For input and output, please use declarative name and please describe the type as well.
 
         An example of the decomposition is as follows:
 
@@ -48,8 +52,8 @@ class ChainOfTasks(ThoughtProcess):
                 },
                 {
                     "objective": "Find the south neighbor country of the country",
-                    "input": {"name": "country", "type": "str"},
-                    "output": {"name": "country", "type": "str"}
+                    "input": {"name": "target_country", "type": "str"},
+                    "output": {"name": "neighbor_country", "type": "str"}
                 }
             ]
         }
@@ -90,16 +94,14 @@ class ChainOfTasks(ThoughtProcess):
                         raise ValueError("Cannot find the steps in the response.")
                     text = steps.strip()
                 steps_json = json.loads(text)
-                tasks = []
+                tasks_meta = []
                 for step in steps_json["steps"]:
-                    tasks.append(
+                    tasks_meta.append(
                         {
-                            "objective": step["objective"],
-                            "input": step["input"],
-                            "output": step["output"],
+                            **step,
                         }
                     )
-                return tasks
+                return tasks_meta
             except Exception as e:
                 retry += 1
                 self._logger.warning(
@@ -117,6 +119,7 @@ class ChainOfTasks(ThoughtProcess):
             task = SimpleTask(
                 tool=self.reasoner,
                 task_name=task_meta["objective"],
+                # task_context=task_meta["context"],
             )
             tasks.append(task)
             self._logger.task_log(f"Task {idx + 1}: {task_meta['objective']} constructed.")
