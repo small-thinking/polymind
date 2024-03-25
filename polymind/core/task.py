@@ -42,7 +42,7 @@ class BaseTask(BaseModel, ABC):
         if "input" in input.content:
             self._logger.task_log(f"[{self.task_name}] input: {input.content['input']}")
         response = await self._execute(input)
-        self._logger.task_log(f"[{self.task_name}] output: {response.content['output']}")
+        # self._logger.task_log(f"[{self.task_name}] output: {response.content['output']}")
         # if "output" not in response.content:
         #     raise ValueError(f"In task {self.task_name}, The output message must contain the output.")
         return response
