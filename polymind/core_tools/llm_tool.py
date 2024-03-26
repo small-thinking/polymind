@@ -63,30 +63,35 @@ class OpenAIChatTool(LLMTool):
             Param(
                 name="system_prompt",
                 type="str",
+                required=False,
                 example="You are a helpful AI assistant.",
                 description="The system prompt for the chat.",
             ),
             Param(
                 name="input",
                 type="str",
+                required=True,
                 example="hello, how are you?",
                 description="The prompt for the chat.",
             ),
             Param(
                 name="max_tokens",
                 type="int",
+                required=False,
                 example="1500",
                 description="The maximum number of tokens for the chat.",
             ),
             Param(
                 name="temperature",
                 type="float",
+                required=False,
                 example="0.7",
                 description="The temperature for the chat.",
             ),
             Param(
                 name="top_p",
                 type="float",
+                required=False,
                 example="0.1",
                 description="The top p for the chat.",
             ),
@@ -103,6 +108,7 @@ class OpenAIChatTool(LLMTool):
             Param(
                 name="output",
                 type="str",
+                required=True,
                 example="I'm good, how are you?",
                 description="The response from the chat.",
             ),

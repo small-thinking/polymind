@@ -36,12 +36,14 @@ class RetrieveTool(BaseTool, ABC):
             Param(
                 name=self.query_key,
                 type="str",
+                required=True,
                 description="The query to retrieve the information.",
                 example="What is the capital of France?",
             ),
             Param(
                 name="top_k",
                 type="int",
+                required=False,
                 description="The number of top results to retrieve.",
                 example="3",
             ),
@@ -53,6 +55,7 @@ class RetrieveTool(BaseTool, ABC):
             Param(
                 name="results",
                 type="List[str]",
+                required=True,
                 description="The top k results retrieved by the tool.",
                 example=[
                     "The capital of France is Paris.",
@@ -87,6 +90,7 @@ class IndexTool(BaseTool, ABC):
             Param(
                 name="descriptions",
                 type="List[str]",
+                required=True,
                 description="The descriptions to index the content.",
                 example=[
                     "The tool to help find external knowledge",
@@ -101,6 +105,7 @@ class IndexTool(BaseTool, ABC):
             Param(
                 name="status",
                 type="str",
+                required=True,
                 description="The status of the indexing operation.",
                 example="success",
             ),

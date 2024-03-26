@@ -8,11 +8,9 @@ from unittest.mock import AsyncMock, patch
 
 import numpy as np
 import pytest
-from aioresponses import aioresponses
 
 from polymind.core.message import Message
-from polymind.core_tools.llm_tool import OpenAIChatTool, OpenAIEmbeddingTool
-from polymind.core_tools.rest_api_tool import RestAPITool
+from polymind.core_tools.llm_tool import OpenAIChatTool
 
 
 class TestOpenAIChatTool:
@@ -61,30 +59,35 @@ class TestOpenAIChatTool:
             {
                 "name": "system_prompt",
                 "type": "str",
+                "required": false,
                 "description": "The system prompt for the chat.",
                 "example": "You are a helpful AI assistant."
             },
             {
                 "name": "input",
                 "type": "str",
+                "required": true,
                 "description": "The prompt for the chat.",
                 "example": "hello, how are you?"
             },
             {
                 "name": "max_tokens",
                 "type": "int",
+                "required": false,
                 "description": "The maximum number of tokens for the chat.",
                 "example": "1500"
             },
             {
                 "name": "temperature",
                 "type": "float",
+                "required": false,
                 "description": "The temperature for the chat.",
                 "example": "0.7"
             },
             {
                 "name": "top_p",
                 "type": "float",
+                "required": false,
                 "description": "The top p for the chat.",
                 "example": "0.1"
             }
@@ -93,6 +96,7 @@ class TestOpenAIChatTool:
             {
                 "name": "output",
                 "type": "str",
+                "required": true,
                 "description": "The response from the chat.",
                 "example": "I'm good, how are you?"
             }

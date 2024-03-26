@@ -45,7 +45,7 @@ class TestRestAPITool:
                         "Content-Type": "application/json",
                         "Authorization": "Bearer correct-token",
                     },
-                    "body": {
+                    "param": {
                         "start_date": "2024-03-12",
                         "end_date": "2024-03-17",
                         "tags": ["Design2Code"],
@@ -71,7 +71,7 @@ class TestRestAPITool:
                     "url": "https://wenling-production.up.railway.app/query-article/",
                     "method": "POST",
                     "headers": {"Content-Type": "application/json"},
-                    "body": {"start_date": "2024-03-12", "end_date": "2024-03-17"},
+                    "param": {"start_date": "2024-03-12", "end_date": "2024-03-17"},
                 }
             )
 
@@ -92,8 +92,8 @@ class TestRestAPITool:
                 content={
                     "url": "https://wenling-production.up.railway.app/query-article/",
                     "method": "POST",
-                    "headers": {"Content-Type": "application/json"},
-                    "body": {},  # Missing required fields
+                    "headers": {},  # Missing required fields
+                    "param": {"start_date": "2024-03-12", "end_date": "2024-03-17"},
                 }
             )
 

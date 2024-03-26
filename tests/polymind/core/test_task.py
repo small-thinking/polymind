@@ -31,7 +31,10 @@ class MockTool(BaseTool):
     descriptions: List[str] = ["Mock tool for testing"]
 
     def input_spec(self) -> List[Param]:
-        return [Param(name="input", type="str", example="", description="The query to reverse")]
+        return [
+            Param(name="tools_executed", type="List[str]", example="", description="The reversed query"),
+            Param(name="env_tool", type="List[str]", example="", description="The reversed query"),
+        ]
 
     def output_spec(self) -> List[Param]:
         return [
@@ -78,7 +81,7 @@ class TestSequentialTask:
         num_tasks = 3
         tasks = [MockTask(task_name=f"Task{i}", tool=MockTool(tool_name=f"Tool{i}")) for i in range(num_tasks)]
         sequential_task = SequentialTask(task_name="test_seq_task", tool=MockTool(tool_name="Primary"), tasks=tasks)
-        input_message = Message(content={})
+        input_message = Message(content={"tools_executed": [], "env_tool": []})
         result_message = await sequential_task(input_message)
 
         assert result_message.content["tools_executed"] == [

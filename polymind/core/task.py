@@ -37,14 +37,7 @@ class BaseTask(BaseModel, ABC):
         Returns:
             Message: The output message from the task. It will at least have an "output" field.
         """
-        # if "input" not in input.content:
-        #     raise ValueError(f"In task {self.task_name}, The input message must contain the input.")
-        if "input" in input.content:
-            self._logger.task_log(f"[{self.task_name}] input: {input.content['input']}")
         response = await self._execute(input)
-        # self._logger.task_log(f"[{self.task_name}] output: {response.content['output']}")
-        # if "output" not in response.content:
-        #     raise ValueError(f"In task {self.task_name}, The output message must contain the output.")
         return response
 
     @abstractmethod
