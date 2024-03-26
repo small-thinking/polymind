@@ -9,7 +9,7 @@ from polymind.core.agent import Agent, ThoughtProcess
 from polymind.core.message import Message
 from polymind.core.task import SequentialTask, SimpleTask
 from polymind.core.utils import Logger
-from polymind.core_tools.llm_tool import LLMTool, OpenAIChatTool
+from polymind.core_tools.llm_tool import LLMTool
 
 
 class ChainOfTasks(ThoughtProcess):
@@ -59,10 +59,10 @@ class ChainOfTasks(ThoughtProcess):
         }
     """
 
-    def __init__(self, **kwargs):
+    def __init__(self, reasoner: LLMTool, **kwargs):
         super().__init__(**kwargs)
         self._logger = Logger(__file__)
-        self.reasoner = OpenAIChatTool(response_format="json_object")
+        self.reasoner = reasoner
 
     async def _breakdown_problem(self, input: Message) -> List[Dict[str, str]]:
         """Break down the problem into a series of tasks."""
