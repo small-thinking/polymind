@@ -7,7 +7,7 @@ from pydantic import Field
 
 from polymind.core.agent import Agent, ThoughtProcess
 from polymind.core.message import Message
-from polymind.core.task import SequentialTask, SimpleTask
+from polymind.core.task import AtomTask, SequentialTask
 from polymind.core.utils import Logger
 from polymind.core_tools.llm_tool import LLMTool
 
@@ -116,7 +116,7 @@ class ChainOfTasks(ThoughtProcess):
         """Construct the tasks from the metadata."""
         tasks = []
         for idx, task_meta in enumerate(tasks_meta):
-            task = SimpleTask(
+            task = AtomTask(
                 tool=self.reasoner,
                 task_name=task_meta["objective"],
                 # task_context=task_meta["context"],

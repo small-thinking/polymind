@@ -34,6 +34,7 @@ class TestParam:
         param = Param(
             name="test_param",
             type=type_str,
+            required=True,
             description="A test parameter",
             example="example value",
         )
@@ -57,6 +58,7 @@ class TestParam:
         param = Param(
             name="complex_param",
             type=type_str,
+            required=True,
             description="A complex parameter",
             example=example,
         )
@@ -80,12 +82,12 @@ class TestParam:
     def test_invalid_types(self, type_str):
         """Test that Param rejects invalid type strings."""
         with pytest.raises(ValidationError):
-            Param(name="test_param", type=type_str, description="A test parameter")
+            Param(name="test_param", type=type_str, required=True, description="A test parameter")
 
     def test_param_with_description_and_default_example(self):
         """Test that Param correctly stores a description and uses the default example if not specified."""
         description = "This parameter is for testing."
-        param = Param(name="test_param", type="str", description=description)
+        param = Param(name="test_param", type="str", required=True, description=description)
         assert param.description == description, "Param description should match the input description"
         assert param.example == "", "Param example should use the default empty string if not specified"
 
@@ -98,6 +100,7 @@ class NoNameTool(BaseTool):
             Param(
                 name="query",
                 type="str",
+                required=True,
                 example="example-str",
                 description="The query to reverse",
             ),
@@ -108,6 +111,7 @@ class NoNameTool(BaseTool):
             Param(
                 name="result",
                 type="str",
+                required=True,
                 example="example-output-str",
                 description="The reversed query",
             ),
@@ -124,6 +128,7 @@ class NoEnoughDescriptionTool(BaseTool):
             Param(
                 name="query",
                 type="str",
+                required=True,
                 example="example-str",
                 description="The query to reverse",
             ),
@@ -134,6 +139,7 @@ class NoEnoughDescriptionTool(BaseTool):
             Param(
                 name="result",
                 type="str",
+                required=True,
                 example="example-output-str",
                 description="The reversed query",
             ),
@@ -171,13 +177,15 @@ class ToolForTest(BaseTool):
             Param(
                 name="query",
                 type="str",
+                required=True,
                 example="example-str",
                 description="The query to reverse",
             ),
             Param(
                 name="query2",
                 type="str",
-                example="example-str",
+                required=True,
+                example="example-str2",
                 description="The query2 to reverse",
             ),
         ]
@@ -187,13 +195,15 @@ class ToolForTest(BaseTool):
             Param(
                 name="result",
                 type="str",
-                example="example-output-str",
+                required=True,
+                example="example-output-str-query",
                 description="The reversed query",
             ),
             Param(
                 name="result2",
                 type="str",
-                example="example-output-str",
+                required=True,
+                example="example-output-str-query2",
                 description="The reversed query2",
             ),
         ]
@@ -252,31 +262,35 @@ class TestBaseTool:
             {
                 "name": "query",
                 "type": "str",
+                "required": true,
                 "description": "The query to reverse",
                 "example": "example-str"
             },
             {
                 "name": "query2",
                 "type": "str",
+                "required": true,
                 "description": "The query2 to reverse",
-                "example": "example-str"
+                "example": "example-str2"
             }
         ],
         "output_message": [
             {
                 "name": "result",
                 "type": "str",
+                "required": true,
                 "description": "The reversed query",
-                "example": "example-output-str"
+                "example": "example-output-str-query"
             },
             {
                 "name": "result2",
                 "type": "str",
+                "required": true,
                 "description": "The reversed query2",
-                "example": "example-output-str"
+                "example": "example-output-str-query2"
             }
         ]
         }"""
-        assert json.loads(spec_str) == json.loads(
-            expected_json_str
-        ), "The spec string should match the expected JSON string"
+        spec_json_obj = json.loads(spec_str)
+        expected_json_obj = json.loads(expected_json_str)
+        assert spec_json_obj == expected_json_obj, "The spec string should match the expected JSON string"

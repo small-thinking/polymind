@@ -1,7 +1,8 @@
 import json
 import re
 from abc import ABC, abstractmethod
-from typing import Dict, List
+from collections.abc import Mapping, Sequence
+from typing import Any, Dict, List, get_origin
 
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field, field_validator
@@ -19,6 +20,7 @@ class Param(BaseModel):
         str, int, float, bool, Dict[KeyType, ValueType], List[ElementType].
         """
     )
+    required: bool = Field(default=True, description="Whether the parameter is required.")
     description: str = Field(description="A description of the parameter.")
     example: str = Field(default="", description="An example value for the parameter.")
 
@@ -26,6 +28,7 @@ class Param(BaseModel):
         return {
             "name": self.name,
             "type": self.type,
+            "required": self.required,
             "description": self.description,
             "example": self.example,
         }
@@ -36,6 +39,7 @@ class Param(BaseModel):
     @field_validator("type")
     def check_type(cls, v: str) -> str:
         allowed_simple_types = [
+            "Any",
             "str",
             "int",
             "float",
@@ -55,9 +59,10 @@ class Param(BaseModel):
         # Validating List type with specific format for element type
         if re.match(r"^List\[\w+\]$", v):
             return v
+        # Validating Union type with specific format for element types
         raise ValueError(
             f"type must be one of {allowed_simple_types},"
-            "'Dict[KeyType, ValueType]', or 'List[ElementType]', got '{v}'",
+            f"'Dict[KeyType, ValueType]', 'List[ElementType]', got '{v}'",
         )
 
 
@@ -111,7 +116,10 @@ class BaseTool(BaseModel, ABC):
         Returns:
             Message: The output message from the tool.
         """
-        return await self._execute(input)
+        self._validate_input_message(input)
+        output_message = await self._execute(input)
+        self._validate_output_message(output_message)
+        return output_message
 
     def get_spec(self) -> str:
         """Return the input and output specification of the tool.
@@ -133,13 +141,77 @@ class BaseTool(BaseModel, ABC):
 
     @abstractmethod
     def input_spec(self) -> List[Param]:
-        """Return the specification of the input parameters."""
+        """Return the specification of the input parameters.
+        Each input param should have the following fields:
+        - name: The name of the parameter.
+        - type: The type of the parameter.
+        - required: Whether the parameter is required.
+        - description: A description of the parameter.
+        - example: An example value for the parameter.
+        """
         pass
+
+    def _validate_input_message(self, input_message: Message) -> None:
+        """Validate the input message against the input spec.
+
+        Args:
+            input (Message): The input message to the tool.
+
+        Raises:
+            ValueError: If the input message is invalid.
+        """
+        input_spec = self.input_spec()
+        for param in input_spec:
+            if param.name not in input_message.content and param.required:
+                raise ValueError(f"The input message must contain the field '{param.name}'.")
+            if param.name in input_message.content and param.required:
+                # Extract the base type for generics (e.g., List or Dict) or use the type directly
+                base_type = get_origin(eval(param.type)) if get_origin(eval(param.type)) else eval(param.type)
+                # Map the typing module types to their concrete types for isinstance checks
+                type_mapping = {
+                    Sequence: list,  # Assuming to treat any sequence as a list
+                    Mapping: dict,  # Assuming to treat any mapping as a dict
+                    Any: object,  # Assuming Any can be any object
+                }
+                concrete_type = type_mapping.get(base_type, base_type)
+                if not isinstance(input_message.content[param.name], concrete_type):
+                    raise ValueError(f"The field '{param.name}' must be of type '{param.type}'.")
 
     @abstractmethod
     def output_spec(self) -> List[Param]:
-        """Return the specification of the output parameters."""
+        """Return the specification of the output parameters.
+        Each output param should have the following fields:
+        - name: The name of the parameter.
+        - type: The type of the parameter.
+        - required: Whether the parameter is required.
+        - description: A description of the parameter.
+        - example: An example value for the parameter.
+        """
         pass
+
+    def _validate_output_message(self, output_message: Message) -> None:
+        """Validate the output message against the output spec.
+
+        Args:
+            output_message (Message): The output message from the tool.
+
+        Raises:
+            ValueError: If the output message is invalid.
+        """
+        output_spec = self.output_spec()
+        for param in output_spec:
+            if param.name not in output_message.content and param.required:
+                raise ValueError(f"The output message must contain the field '{param.name}'.")
+            if param.name in output_message.content and param.required:
+                # Extract the base type for generics (e.g., List or Dict) or use the type directly
+                base_type = get_origin(eval(param.type)) if get_origin(eval(param.type)) else eval(param.type)
+                type_mapping = {
+                    Sequence: list,  # Assuming to treat any sequence as a list
+                    Mapping: dict,  # Assuming to treat any mapping as a dict
+                }
+                concrete_type = type_mapping.get(base_type, base_type)
+                if not isinstance(output_message.content[param.name], concrete_type):
+                    raise ValueError(f"The field '{param.name}' must be of type '{param.type}'.")
 
     @abstractmethod
     async def _execute(self, input: Message) -> Message:

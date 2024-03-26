@@ -24,32 +24,37 @@ class RestAPITool(BaseTool):
             Param(
                 name="url",
                 type="str",
+                required=True,
                 description="The URL of the web service.",
                 example="https://example.com/api/data",
             ),
             Param(
                 name="method",
                 type="str",
+                required=True,
                 description="HTTP method to use for the request.",
                 example="GET",
             ),
             Param(
                 name="headers",
                 type="Dict[str, str]",
+                required=True,
                 description="HTTP headers for the request.",
                 example='{"Content-Type": "application/json"}',
             ),
             Param(
                 name="body",
-                type="Union[Dict[str, Any], str]",
+                type="str",
+                required=False,
                 description="""The body of the request for POST/PUT methods.
-                Can be a dictionary for JSON or a string for form-encoded data.
+                Can be a dictionary for a string for form-encoded data.
                 """,
-                example='{"key": "value"}',
+                example="key=value&key2=value2",
             ),
             Param(
                 name="params",
                 type="Dict[str, str]",
+                required=False,
                 description="URL query parameters.",
                 example='{"query": "value"}',
             ),
@@ -60,12 +65,14 @@ class RestAPITool(BaseTool):
             Param(
                 name="status_code",
                 type="int",
+                required=True,
                 description="HTTP status code of the response.",
                 example="200",
             ),
             Param(
                 name="response",
-                type="Union[Dict[str, Any], str]",
+                type="Dict[str, str]",
+                required=False,
                 description="The parsed response body. Can be a dictionary if JSON was returned or a string otherwise.",
                 example='{"data": "value"}',
             ),
