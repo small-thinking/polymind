@@ -54,18 +54,18 @@ class BaseTask(BaseModel, ABC):
         pass
 
 
-class SimpleTask(BaseTask):
-    """The task that can be fulfilled by an LLM inference."""
+class AtomTask(BaseTask):
+    """The task that cannot be further breakdown."""
 
     tool: LLMTool = Field(description="The LLM tool to use for the task.")
     task_name: str = Field(default="simple-task", description="The name of the task.")
     task_context: str = Field(default="", description="The context of the task.")
 
     system_prompt: str = """
-        Please help answer the below question, and put your answer into the json` format.
+        Please help answer the below question, and put your answer into the json format.
         The result should be put as the key "output".
 
-        Some examples questions and answers are as follows:
+        Some examples are as follows:
         --- start of example ---
         1. What's the height of the Eiffel Tower?
 
