@@ -59,19 +59,25 @@ class Logger:
             self.logger.info(color + message + Fore.RESET)
 
     def debug(self, message: str) -> None:
-        self.log(message, Logger.LoggingLevel.DEBUG, Fore.GREEN)
+        self.log(message, Logger.LoggingLevel.DEBUG, Fore.BLACK)
 
     def info(self, message: str) -> None:
-        self.log(message, Logger.LoggingLevel.INFO, Fore.BLUE)
+        self.log(message, Logger.LoggingLevel.INFO, Fore.WHITE)
 
     def tool_log(self, message: str) -> None:
         self.log(message, Logger.LoggingLevel.TOOL, Fore.YELLOW)
 
     def task_log(self, message: str) -> None:
-        self.log(message, Logger.LoggingLevel.TASK, Fore.MAGENTA)
+        self.log(message, Logger.LoggingLevel.TASK, Fore.BLUE)
 
     def thought_process_log(self, message: str) -> None:
-        self.log(message, Logger.LoggingLevel.THOUGHT_PROCESS, Fore.CYAN)
+        self.log(message, Logger.LoggingLevel.THOUGHT_PROCESS, Fore.GREEN)
 
     def warning(self, message: str) -> None:
-        self.log(message, Logger.LoggingLevel.WARNING, Fore.RED)
+        self.log(message, Logger.LoggingLevel.WARNING, Fore.YELLOW)
+
+    def error(self, message: str) -> None:
+        self.log(message, Logger.LoggingLevel.ERROR, Fore.RED)
+
+    def critical(self, message: str) -> None:
+        self.log(message, Logger.LoggingLevel.CRITICAL, Fore.MAGENTA)
