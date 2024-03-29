@@ -34,7 +34,7 @@ class Embedder(BaseTool, ABC):
         return [
             Param(
                 name="embeddings",
-                type="Any",
+                type="np.ndarray",
                 description="The embedding of the input.",
                 example="[0.1, 0.2, 0.3]",
             ),
