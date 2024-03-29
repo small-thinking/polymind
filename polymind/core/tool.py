@@ -51,18 +51,17 @@ class Param(BaseModel):
             "pd.DataFrame",
             "DataFrame",
         ]
-        if v in allowed_simple_types:
+        dict_type_regex = (
+            r"^Dict\[(\w+|Dict\[\w+, \w+\]|List\[[\w\[\]]+\]), (\w+|Dict\[\w+, \w+\]|List\[[\w\[\]]+\])\]$"
+        )
+        list_type_regex = r"^List\[(\w+|Dict\[\w+, \w+\]|List\[[\w\[\]]+\])\]$"
+
+        if v in allowed_simple_types or re.match(dict_type_regex, v) or re.match(list_type_regex, v):
             return v
-        # Validating Dict type with specific format for key and value types
-        if re.match(r"^Dict\[\w+, \w+\]$", v):
-            return v
-        # Validating List type with specific format for element type
-        if re.match(r"^List\[\w+\]$", v):
-            return v
-        # Validating Union type with specific format for element types
+
         raise ValueError(
-            f"type must be one of {allowed_simple_types},"
-            f"'Dict[KeyType, ValueType]', 'List[ElementType]', got '{v}'",
+            f"type must be one of {allowed_simple_types}, 'Dict[KeyType, ValueType]',"
+            f" 'List[ElementType]', or their nested combinations, got '{v}'"
         )
 
 

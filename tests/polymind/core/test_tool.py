@@ -51,6 +51,14 @@ class TestParam:
                 "pd.DataFrame",
                 "pd.DataFrame({'col1': [1, 2, 3], 'col2': ['a', 'b', 'c']})",
             ),
+            (
+                "List[List[str]]",
+                "[['a', 'b', 'c'], ['d', 'e', 'f'], ['g', 'h', 'i']]",
+            ),
+            (
+                "List[List[float]]",
+                "[[1.1, 2.2, 3.3], [4.4, 5.5, 6.6], [7.7, 8.8, 9.9]]",
+            ),
         ],
     )
     def test_valid_complex_types_with_example(self, type_str, example):
@@ -77,6 +85,7 @@ class TestParam:
             "set",
             "NoneType",
             "List",
+            "List[List[]]",
         ],
     )
     def test_invalid_types(self, type_str):
