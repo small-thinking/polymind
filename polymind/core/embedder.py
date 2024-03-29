@@ -33,7 +33,7 @@ class Embedder(BaseTool, ABC):
     def output_spec(self) -> List[Param]:
         return [
             Param(
-                name="embedding",
+                name="embeddings",
                 type="Any",
                 description="The embedding of the input.",
                 example="[0.1, 0.2, 0.3]",
