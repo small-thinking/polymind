@@ -125,7 +125,6 @@ class KnowledgeRetrieveTool(RetrieveTool):
         "The knowledge retrieval tool.",
         "The tool to search for information from the Milvus database.",
     ]
-    client: MilvusClient = Field(default=None, description="The Milvus client to retrieve the knowledge.")
     collection_name: str = Field(default="knowledge", description="The name of the database to store the data.")
     keys_to_retrieve: List[str] = Field(["content"], description="The keys to retrieve from the knowledge.")
     embedder: Embedder = Field(default=None, description="The embedder to generate the embedding for the descriptions.")
@@ -134,8 +133,8 @@ class KnowledgeRetrieveTool(RetrieveTool):
     def _set_client(self):
         host = os.environ.get("MILVUS_HOST", "localhost")
         port = os.environ.get("MILVUS_PORT", 19530)
-        self.client = MilvusClient(uri=f"http://{host}:{port}")
-        self.client.create_collection(self.collection_name, dimension=self.embed_dim, auto_id=True)
+        self._client = MilvusClient(uri=f"http://{host}:{port}")
+        self._client.create_collection(self.collection_name, dimension=self.embed_dim, auto_id=True)
         self.embedder = OpenAIEmbeddingTool(embed_dim=self.embed_dim)
 
     async def _execute(self, input: Message) -> Message:
@@ -153,7 +152,7 @@ class KnowledgeRetrieveTool(RetrieveTool):
             "anns_field": "vector",
             "output_fields": self.keys_to_retrieve,
         }
-        search_results = self.client.search(**search_params)
+        search_results = self._client.search(**search_params)
         results = []
         for hits in search_results:
             for hit in hits:
@@ -186,7 +185,7 @@ class KnowledgeIndexTool(IndexTool):
     keys_to_index: List[str] = Field(["content"], description="The keys to retrieve from the knowledge.")
     embedder: Embedder = Field(default=None, description="The embedder to generate the embedding for the descriptions.")
     embed_dim: int = Field(default=384, description="The dimension of the embedding.")
-    recreate_collection: bool = Field(default=False, description="Whether to recreate the collection.")
+    recreate_collection: bool = Field(default=True, description="Whether to recreate the collection.")
 
     def _set_client(self):
         host = os.environ.get("MILVUS_HOST", "localhost")
@@ -194,7 +193,6 @@ class KnowledgeIndexTool(IndexTool):
         self.client = MilvusClient(uri=f"http://{host}:{port}")
         if self.recreate_collection:
             self.client.drop_collection(self.collection_name)
-            assert False
         self.client.create_collection(
             self.collection_name, dimension=self.embed_dim, consistency_level="Bounded", auto_id=True
         )

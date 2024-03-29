@@ -71,7 +71,6 @@ class ToolIndexer(Indexer):
         if not os.path.exists(index_path):
             os.makedirs(os.path.dirname(index_path), exist_ok=True)
         if os.path.exists(index_path):
-            self._logger.info(f"Index path exists: {index_path}")
             # Load the index if it already exists.
             index = faiss.read_index(index_path)
             # Incrementally update the index.
