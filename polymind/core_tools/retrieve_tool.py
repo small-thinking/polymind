@@ -2,6 +2,7 @@ import os
 from abc import ABC, abstractmethod
 from typing import Dict, List
 
+import numpy as np
 from pydantic import Field
 from pymilvus import MilvusClient
 
@@ -143,7 +144,7 @@ class KnowledgeRetrieveTool(RetrieveTool):
         query = input.content[self.query_key]
         embed_message = Message(content={"input": [query]})
         embedding_message = await self.embedder(embed_message)
-        embedding_ndarray = embedding_message.content["embeddings"]
+        embedding_ndarray = np.array(embedding_message.content["embeddings"])
         # Convert from ndarray to list of list of float and there should be only one embedding.
         search_params = {
             "collection_name": self.collection_name,
@@ -214,9 +215,9 @@ class KnowledgeIndexTool(IndexTool):
                 raise ValueError(f"Cannot find the keys {self.keys_to_index} in the item.")
             item_message = Message(content={"input": [item["content"]]})
             embedding_message = await self.embedder(item_message)
-            embedding = embedding_message.content["embeddings"]
-            embedding_ndarray = embedding.tolist()[0]
-            row = {"vector": embedding_ndarray}
+            embeddings: List[List[float]] = embedding_message.content["embeddings"]
+            embedding = embeddings[0]
+            row = {"vector": embedding}
             for key in self.keys_to_index:
                 row[key] = item[key]
             rows.append(row)

@@ -33,19 +33,22 @@ class Indexer(BaseTool, ABC):
             Param(
                 name="descriptions",
                 type="List[str]",
+                required=True,
                 description="The descriptions to index the content.",
-                example=[
+                example="""[
                     "The tool to help find external knowledge",
                     "The search engine tool",
-                ],
+                ]""",
             )
         )
+        return input_params
 
     def output_spec(self) -> List[Param]:
         return [
             Param(
                 name="status",
                 type="str",
+                required=True,
                 description="The status of the indexing operation.",
                 example="success",
             ),

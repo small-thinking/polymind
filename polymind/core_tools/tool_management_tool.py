@@ -11,6 +11,7 @@ from polymind.core.embedder import Embedder
 from polymind.core.indexer import Indexer
 from polymind.core.message import Message
 from polymind.core.tool import BaseTool, Param
+from polymind.core.utils import Logger
 from polymind.core_tools.llm_tool import (LLMTool, OpenAIChatTool,
                                           OpenAIEmbeddingTool)
 
@@ -29,17 +30,25 @@ class ToolIndexer(Indexer):
         "ToolIndexer is a tool to index the learned tools into the knowledge base.",
     ]
 
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._logger = Logger(__file__)
+        if not os.path.exists(self.learned_tool_folder):
+            os.makedirs(self.learned_tool_folder, exist_ok=True)
+
     def _extra_input_spec(self) -> List[Param]:
         return [
             Param(
                 name="tool_name",
                 type="str",
+                required=True,
                 description="The name of the tool to be indexed.",
                 example="rest-api-tool",
             ),
             Param(
                 name="descriptions",
                 type="List[str]",
+                required=True,
                 description="The descriptions of the tool to be indexed.",
                 example="""[
                     "This tool is used to call any RESTful API.",
@@ -51,6 +60,7 @@ class ToolIndexer(Indexer):
             Param(
                 name="tool_file_name",
                 type="str",
+                required=True,
                 description="The file name of the tool. The tool will be stored under the knowledge folder.",
                 example="rest_api_tool.py",
             ),
@@ -61,6 +71,7 @@ class ToolIndexer(Indexer):
         if not os.path.exists(index_path):
             os.makedirs(os.path.dirname(index_path), exist_ok=True)
         if os.path.exists(index_path):
+            self._logger.info(f"Index path exists: {index_path}")
             # Load the index if it already exists.
             index = faiss.read_index(index_path)
             # Incrementally update the index.
@@ -104,8 +115,9 @@ class ToolIndexer(Indexer):
         descriptions = input_message.content["descriptions"]
         filename = input_message.content["tool_file_name"]
         embedding = await self.embedder._embedding(descriptions)
+        embedding_ndarray = np.array(embedding)
         # Save the index, if index exists, increment the index.
-        self._create_or_update_index(embedding)
+        self._create_or_update_index(embedding_ndarray)
         # Save the actual tool file, if folder not exists, create the folder.
         self._create_or_update_metadata(tool_name=tool_name, descriptions=descriptions, filename=filename)
         return Message(content={"status": "success"})
@@ -193,7 +205,8 @@ class ToolRetriever(BaseTool):
     async def _execute(self, input_message: Message) -> Message:
         requirement = input_message.content["requirement"]
         embedding = await self.embedder._embedding([requirement])
-        candidates = self._find_top_k_candidates(embedding)
+        np_embedding = np.array(embedding)
+        candidates = self._find_top_k_candidates(np_embedding)
         return Message(content={"candidates": candidates})
 
 

@@ -6,7 +6,6 @@ For now, it contains two tools: OpenAIChatTool and OpenAIEmbeddingTool.
 import os
 from typing import List
 
-import numpy as np
 from openai import AsyncOpenAI
 from pydantic import Field
 
@@ -184,7 +183,7 @@ class OpenAIEmbeddingTool(Embedder):
     )
     embedding_restful_tool: BaseTool = RestAPITool()
 
-    async def _embedding(self, input: List[str]) -> np.ndarray:
+    async def _embedding(self, input: List[str]) -> List[List[float]]:
         """Generate the embedding for the input using OpenAI embedding."""
         # Check OpenAI API key
         openai_api_key = os.environ.get("OPENAI_API_KEY")
@@ -219,4 +218,4 @@ class OpenAIEmbeddingTool(Embedder):
         # Reduce the dimension of the embedding
         embedding_list = [entry.get("embedding", []) for entry in response.get("data", [])]
         embeddings: List[List[float]] = [embedding[: self.embed_dim] for embedding in embedding_list]
-        return np.array(embeddings)
+        return embeddings
