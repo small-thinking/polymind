@@ -2,7 +2,7 @@
 
 ![PolyMind Logo](images/polymind-logo.png)
 
-PolyMind is a cutting-edge multi-agent framework focused on leveraging collective intelligence to solve complex and distributed problems. Inspired by the concept of "群策" from Chinese philosophy, which emphasizes the strength found in collective decision-making and strategy, PolyMind provides a platform for creating and managing intelligent agents that work together to achieve common goals.
+PolyMind is a model-agnostic, tool-agnostic, and data-agnostic frameowrk for building intelligent agents that can work together to solve complex problems. It is inspired by the concept of "群策" from Chinese philosophy, which emphasizes the strength found in collective decision-making and strategy. PolyMind provides a platform for creating and managing intelligent agents that work together to achieve common goals.
 
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
