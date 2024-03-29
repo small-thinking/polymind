@@ -4,7 +4,6 @@
 from abc import ABC, abstractmethod
 from typing import List
 
-import numpy as np
 from pydantic import Field
 
 from polymind.core.message import Message
@@ -34,14 +33,14 @@ class Embedder(BaseTool, ABC):
         return [
             Param(
                 name="embeddings",
-                type="np.ndarray",
+                type="List[List[float]]",
                 description="The embedding of the input.",
-                example="[0.1, 0.2, 0.3]",
+                example="[[0.1, 0.2, 0.3]]",
             ),
         ]
 
     @abstractmethod
-    async def _embedding(self, input: List[str]) -> np.ndarray:
+    async def _embedding(self, input: List[str]) -> List[List[float]]:
         """Generate the embedding for the input."""
         pass
 
