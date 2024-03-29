@@ -23,10 +23,10 @@ class Embedder(BaseTool, ABC):
                 name="input",
                 type="List[str]",
                 description="The input to be embedded.",
-                example=[
+                example="""[
                     "The tool to help find external knowledge",
                     "The search engine tool",
-                ],
+                ]""",
             ),
         ]
 
@@ -36,7 +36,7 @@ class Embedder(BaseTool, ABC):
                 name="embedding",
                 type="Any",
                 description="The embedding of the input.",
-                example=[0.1, 0.2, 0.3],
+                example="[0.1, 0.2, 0.3]",
             ),
         ]
 
