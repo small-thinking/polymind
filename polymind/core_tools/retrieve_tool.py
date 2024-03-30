@@ -15,7 +15,8 @@ from polymind.core_tools.llm_tool import OpenAIEmbeddingTool
 class RetrieveTool(BaseTool, ABC):
     """The base class for the retrieval tools."""
 
-    query_key: str = Field(default="query", description="The key to retrieve the query from the input message.")
+    query_key: str = Field(default="input", description="The key to retrieve the query from the input message.")
+    result_key: str = Field(default="results", description="The key to store the results in the output message.")
     embedder: Embedder = Field(description="The embedder to generate the embedding for the descriptions.")
     top_k: int = Field(default=3, description="The number of top results to retrieve.")
 
@@ -54,7 +55,7 @@ class RetrieveTool(BaseTool, ABC):
     def output_spec(self) -> List[Param]:
         output_spec = [
             Param(
-                name="results",
+                name=self.result_key,
                 type="List[str]",
                 required=True,
                 description="The top k results retrieved by the tool.",
@@ -66,6 +67,34 @@ class RetrieveTool(BaseTool, ABC):
             ),
         ]
         return output_spec
+
+    @abstractmethod
+    async def _retrieve(self, input: Message, query_embedding: List[float]) -> Message:
+        """Retrieve the information based on the query.
+
+        Args:
+            input (Message): The input message containing the query. It should have fields defined in the input_spec.
+            query_embedding (List[List[float]]): The embedding of the query.
+
+        Return:
+            Message: The message containing the retrieved information.
+        """
+        pass
+
+    async def _execute(self, input: Message) -> Message:
+        """Retrieve the information based on the query.
+
+        Args:
+            input (Message): The input message containing the query. It should have fields defined in the input_spec.
+        """
+        # Get the embeddings for the query.
+        query = input.content.get(self.query_key, "")
+        embed_message = Message(content={"input": [query]})
+        embedding_message = await self.embedder(embed_message)
+        embedding_message.content["embeddings"]
+        # Retrieve the information based on the query.
+        response_message = await self._retrieve(embedding_message.content["embeddings"])
+        return response_message
 
 
 class IndexTool(BaseTool, ABC):
@@ -137,18 +166,13 @@ class KnowledgeRetrieveTool(RetrieveTool):
         self._client.create_collection(self.collection_name, dimension=self.embed_dim, auto_id=True)
         self.embedder = OpenAIEmbeddingTool(embed_dim=self.embed_dim)
 
-    async def _execute(self, input: Message) -> Message:
-        if self.query_key not in input.content:
-            raise ValueError(f"Cannot find the key {self.query_key} in the input message.")
-        query = input.content[self.query_key]
-        embed_message = Message(content={"input": [query]})
-        embedding_message = await self.embedder(embed_message)
-        embedding_ndarray = np.array(embedding_message.content["embeddings"])
+    async def _retrieve(self, input: Message, query_embedding: List[float]) -> Message:
+        embedding_ndarray = np.array([query_embedding])
         # Convert from ndarray to list of list of float and there should be only one embedding.
         search_params = {
             "collection_name": self.collection_name,
             "data": embedding_ndarray.tolist(),
-            "limit": self.top_k,
+            "limit": input.content.get("top_k", self.top_k),
             "anns_field": "vector",
             "output_fields": self.keys_to_retrieve,
         }
@@ -163,7 +187,7 @@ class KnowledgeRetrieveTool(RetrieveTool):
         # Construct the response message.
         response_message = Message(
             content={
-                "results": results,
+                self.result_key: results,
             }
         )
         return response_message
