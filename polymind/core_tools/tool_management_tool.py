@@ -143,9 +143,17 @@ class ToolRetriever(BaseTool):
             Param(
                 name="requirement",
                 type="str",
+                required=True,
                 description="Text-based requirement description for tool retrieval.",
                 example="I need a tool to call REST API.",
-            )
+            ),
+            Param(
+                name="top_k",
+                type="int",
+                required=False,
+                description="Number of top relevant tools to retrieve.",
+                example="3",
+            ),
         ]
 
     def output_spec(self) -> List[Param]:
@@ -153,6 +161,7 @@ class ToolRetriever(BaseTool):
             Param(
                 name="candidates",
                 type="List[str]",
+                required=True,
                 description="List of retrieved candidate tool metadata in json string.",
                 example="""[
                 '{
@@ -168,7 +177,7 @@ class ToolRetriever(BaseTool):
             )
         ]
 
-    def _find_top_k_candidates(self, query_embedding: np.ndarray) -> List[Dict[str, Any]]:
+    def _find_top_k_candidates(self, query_embedding: np.ndarray, top_k: int) -> List[Dict[str, Any]]:
         index_path = os.path.join(self.learned_tool_folder, "tool.index")
         metadata_path = os.path.join(self.learned_tool_folder, "tool_profiles.json")
         if not os.path.exists(index_path) or not os.path.exists(metadata_path):
@@ -179,7 +188,7 @@ class ToolRetriever(BaseTool):
         if index.ntotal == 0:
             raise ValueError("FAISS index is empty.")
         # Query the index
-        distances, indices = index.search(query_embedding.astype(np.float32), min(self.top_k, index.ntotal))
+        distances, indices = index.search(query_embedding.astype(np.float32), min(top_k, index.ntotal))
         # Load metadata
         with open(metadata_path, "r") as f:
             metadata = json.load(f)
@@ -203,9 +212,10 @@ class ToolRetriever(BaseTool):
 
     async def _execute(self, input_message: Message) -> Message:
         requirement = input_message.content["requirement"]
+        top_k = input_message.content.get("top_k", self.top_k)
         embedding = await self.embedder._embedding([requirement])
         np_embedding = np.array(embedding)
-        candidates = self._find_top_k_candidates(np_embedding)
+        candidates = self._find_top_k_candidates(np_embedding, top_k)
         return Message(content={"candidates": candidates})
 
 
