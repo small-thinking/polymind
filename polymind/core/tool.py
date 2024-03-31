@@ -174,7 +174,10 @@ class BaseTool(BaseModel, ABC):
                 }
                 concrete_type = type_mapping.get(base_type, base_type)
                 if not isinstance(input_message.content[param.name], concrete_type):
-                    raise ValueError(f"{self.tool_name}: The field '{param.name}' must be of type '{param.type}'.")
+                    raise ValueError(
+                        f"{self.tool_name}: The field '{param.name}' must be of type '{param.type}',"
+                        f" but is '{type(input_message.content[param.name])}'."
+                    )
 
     @abstractmethod
     def output_spec(self) -> List[Param]:
@@ -210,7 +213,10 @@ class BaseTool(BaseModel, ABC):
                 }
                 concrete_type = type_mapping.get(base_type, base_type)
                 if not isinstance(output_message.content[param.name], concrete_type):
-                    raise ValueError(f"{self.tool_name}: The field '{param.name}' must be of type '{param.type}'.")
+                    raise ValueError(
+                        f"{self.tool_name}: The field '{param.name}' must be of type '{param.type}',"
+                        f" but is '{type(output_message.content[param.name])}'."
+                    )
 
     @abstractmethod
     async def _execute(self, input: Message) -> Message:
