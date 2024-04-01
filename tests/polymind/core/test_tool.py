@@ -100,6 +100,84 @@ class TestParam:
         assert param.description == description, "Param description should match the input description"
         assert param.example == "", "Param example should use the default empty string if not specified"
 
+    @pytest.mark.parametrize(
+        "param_args, expected_output",
+        [
+            (
+                dict(
+                    name="query",
+                    type="str",
+                    description="The query to search for",
+                    example="hello world",
+                ),
+                {"query": {"type": "string", "description": "The query to search for", "example": "hello world"}},
+            ),
+            (
+                dict(
+                    name="options",
+                    type="List[Dict[str, int]]",
+                    description="A list of option dictionaries",
+                    example="[{'option1': 1}, {'option2': 2}]",
+                ),
+                {
+                    "options": {
+                        "type": "list",
+                        "description": "A list of option dictionaries",
+                        "example": "[{'option1': 1}, {'option2': 2}]",
+                    }
+                },
+            ),
+            (
+                dict(
+                    name="flag",
+                    type="bool",
+                    description="A boolean flag",
+                ),
+                {"flag": {"type": "bool", "description": "A boolean flag"}},
+            ),
+        ],
+    )
+    def test_to_open_function_format(self, param_args, expected_output):
+        """Test that to_open_function_format works correctly for different parameter types and examples."""
+        param = Param(**param_args)
+        assert param.to_open_function_format() == expected_output
+
+    @pytest.mark.parametrize(
+        "param_list, expected_output",
+        [
+            (
+                [
+                    Param(
+                        name="query",
+                        type="str",
+                        description="The query to search for",
+                        example="hello world",
+                    ),
+                    Param(
+                        name="page",
+                        type="int",
+                        description="The page number to return",
+                        example="1",
+                    ),
+                ],
+                {
+                    "query": {
+                        "type": "string",
+                        "description": "The query to search for",
+                        "example": "hello world",
+                    },
+                    "page": {"type": "integer", "description": "The page number to return", "example": "1"},
+                },
+            ),
+        ],
+    )
+    def test_to_open_function_format_multiple_params(self, param_list, expected_output):
+        """Test that multiple Param instances can be combined correctly."""
+        combined_output = {}
+        for param in param_list:
+            combined_output.update(param.to_open_function_format())
+        assert combined_output == expected_output
+
 
 # Test tools that fails the validation
 class NoNameTool(BaseTool):
@@ -236,6 +314,26 @@ class ToolForTest(BaseTool):
         )
 
 
+class ExampleTool(BaseTool):
+    tool_name: str = "example_tool"
+    descriptions: List[str] = ["Performs an example task", "Useful for testing", "Demonstrates open function format"]
+
+    def input_spec(self) -> List[Param]:
+        return [
+            Param(name="input1", type="str", required=True, description="First input parameter", example="example1"),
+            Param(name="input2", type="int", required=False, description="Second input parameter", example="2"),
+        ]
+
+    def output_spec(self) -> List[Param]:
+        return [
+            Param(name="output", type="str", required=True, description="Output parameter", example="result"),
+        ]
+
+    async def _execute(self, input: Message) -> Message:
+        message = Message(content={"output": "result"})
+        return message
+
+
 @pytest.fixture(autouse=True)
 def load_env_vars():
     # Setup: Define environment variable before each test
@@ -303,3 +401,42 @@ class TestBaseTool:
         spec_json_obj = json.loads(spec_str)
         expected_json_obj = json.loads(expected_json_str)
         assert spec_json_obj == expected_json_obj, "The spec string should match the expected JSON string"
+
+    @pytest.mark.parametrize(
+        "tool_instance, expected_spec",
+        [
+            (
+                ExampleTool(),
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "example_tool",
+                        "description": "Performs an example task",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "input1": {
+                                    "type": "string",
+                                    "example": "example1",
+                                    "description": "First input parameter",
+                                },
+                                "input2": {"type": "integer", "example": "2", "description": "Second input parameter"},
+                            },
+                            "required": ["input1"],
+                        },
+                        "responses": {
+                            "type": "object",
+                            "properties": {
+                                "output": {"type": "string", "example": "result", "description": "Output parameter"}
+                            },
+                        },
+                    },
+                },
+            ),
+        ],
+    )
+    def test_to_open_function_format(self, tool_instance, expected_spec):
+        spec = tool_instance.to_open_function_format()
+        assert (
+            spec == expected_spec
+        ), "The generated open function format specification should match the expected specification"
