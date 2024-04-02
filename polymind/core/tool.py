@@ -2,7 +2,7 @@ import json
 import re
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, Sequence
-from typing import Any, Dict, List, get_origin
+from typing import Any, Dict, List, Union, get_origin
 
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field, field_validator
@@ -23,6 +23,30 @@ class Param(BaseModel):
     required: bool = Field(default=True, description="Whether the parameter is required.")
     description: str = Field(description="A description of the parameter.")
     example: str = Field(default="", description="An example value for the parameter.")
+
+    def to_open_function_format(self) -> Dict[str, Union[str, bool, Dict[str, Any]]]:
+        """Convert the parameter to the Open Function format."""
+        # Remove the element type if is a list or dict, replace int to integer
+        type_str = self.type
+        if type_str.startswith("List[") or type_str.startswith("Dict["):
+            type_str = type_str.split("[")[0]
+        elif type_str == "int":
+            type_str = "integer"
+        elif type_str == "ndarray" or type_str == "np.ndarray" or type_str == "numpy.ndarray":
+            type_str = "object"
+        elif type_str == "pandas.DataFrame" or type_str == "pd.DataFrame" or type_str == "DataFrame":
+            type_str = "object"
+        elif type_str == "str":
+            type_str = "string"
+        property_dict = {
+            "type": type_str.lower(),
+            "description": self.description,
+        }
+
+        if self.example:
+            property_dict["example"] = str(self.example)
+
+        return {self.name: property_dict}
 
     def to_json_obj(self) -> Dict[str, str]:
         return {
@@ -149,6 +173,33 @@ class BaseTool(BaseModel, ABC):
         - example: An example value for the parameter.
         """
         pass
+
+    def to_open_function_format(self) -> Dict[str, Union[str, Dict[str, Any]]]:
+        """Return the specification of the tool in the format expected by the open function."""
+        input_properties = {}
+        for param in self.input_spec():
+            input_properties.update(param.to_open_function_format())
+
+        output_properties = {}
+        for param in self.output_spec():
+            output_properties.update(param.to_open_function_format())
+
+        return {
+            "type": "function",
+            "function": {
+                "name": self.tool_name,
+                "description": self.descriptions[0],  # Use the first description as the main description
+                "parameters": {
+                    "type": "object",
+                    "properties": input_properties,
+                    "required": [param.name for param in self.input_spec() if param.required],
+                },
+                "responses": {
+                    "type": "object",
+                    "properties": output_properties,
+                },
+            },
+        }
 
     def _validate_input_message(self, input_message: Message) -> None:
         """Validate the input message against the input spec.
