@@ -2,15 +2,18 @@
     poetry run pytest tests/polymind/core/test_tool.py
 """
 
+import importlib.util
 import json
 import os
 from typing import List
+from unittest.mock import Mock, patch
 
 import pytest
 from pydantic import ValidationError
 
 from polymind.core.message import Message
-from polymind.core.tool import BaseTool, Param
+from polymind.core.tool import BaseTool, Param, ToolManager
+from polymind.core.utils import Logger
 
 
 class TestParam:
@@ -253,6 +256,8 @@ class TestFailedTool:
 
 class ToolForTest(BaseTool):
 
+    tool_name: str = "test_tool"
+
     descriptions: list[str] = [
         "This is a test tool",
         "This tool is used to reverse the input query.",
@@ -440,3 +445,39 @@ class TestBaseTool:
         assert (
             spec == expected_spec
         ), "The generated open function format specification should match the expected specification"
+
+
+class TestToolManager:
+    @pytest.fixture
+    def manager(self):
+        return ToolManager(load_core_tools=False)
+
+    @pytest.fixture
+    def tool(self):
+        return ToolForTest()
+
+    def test_load_tools(self, monkeypatch):
+        manager = ToolManager(load_core_tools=False)
+        tool = ToolForTest()
+        manager.add_tool(tool)
+        assert tool.tool_name in manager.tools
+
+    def test_get_tool(self, manager, tool):
+        manager.tools = {"ToolForTest": tool}
+
+        tool_instance = manager._get_tool("ToolForTest")
+        assert tool_instance == tool
+
+        with pytest.raises(ValueError):
+            manager._get_tool("NonExistentTool")
+
+    @pytest.mark.asyncio
+    async def test_invoke_tool(self, monkeypatch):
+        manager = ToolManager(load_core_tools=False)
+        tool = ToolForTest()
+        manager.add_tool(tool)
+
+        params = {"query": "test", "query2": "hello"}
+        response = await manager.invoke_tool("test_tool", input=params)
+        assert response.get("result") == "tset", "The result should be the reverse of the input query"
+        assert response.get("result2") == "olleh", "The result should be the reverse of the input query2"

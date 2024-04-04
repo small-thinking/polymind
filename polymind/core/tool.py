@@ -1,5 +1,9 @@
+import importlib.util
+import inspect
 import json
+import os
 import re
+import sys
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, Sequence
 from typing import Any, Dict, List, Union, get_origin
@@ -281,6 +285,90 @@ class BaseTool(BaseModel, ABC):
             Message: The result of the tool carried in a message.
         """
         pass
+
+
+class ToolManager:
+    """Tool manager is able to load the tools from the given folder and initialize them.
+    All the tools will be indexed in the dict keyed by the tool name.
+
+    The tools will be picked by the reasoner in the way of function calling.
+
+    """
+
+    def __init__(self, load_core_tools: bool = True):
+        """Load and initialize the core_tools by default."""
+        # Tools indexed by the tool name, the value is the instance of the tool.
+        self.logger = Logger(__name__)
+        self.tools: Dict[str, BaseTool] = {}
+        # Load the core tools by default
+        if load_core_tools:
+            self.load_tools_from_directory("./polymind/core_tools")
+
+    def load_tools_from_directory(self, directory_path):
+        """Load all Python files as modules from the given directory."""
+        for filename in os.listdir(directory_path):
+            if filename.endswith(".py") and not filename.startswith("__"):
+                self.logger.debug(f"Loading tool from {filename}")
+                file_path = os.path.join(directory_path, filename)
+                self.load_tool_from_file(file_path)
+
+    def load_tool_from_file(self, file_path):
+        """Dynamically import a Python file and load its tools."""
+        module_name = os.path.splitext(os.path.basename(file_path))[0]
+        spec = importlib.util.spec_from_file_location(module_name, file_path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        self.load_tools(module)
+
+    def add_tool(self, tool: BaseTool):
+        """Add a tool from a class."""
+        self.tools[tool.tool_name] = tool
+
+    def load_tools(self, module):
+        """Scan a module for tool classes and instantiate them."""
+        for name, obj in inspect.getmembers(module, inspect.isclass):
+            if issubclass(obj, BaseTool) and not inspect.isabstract(obj):
+                self.logger.info(f"Loading tool {name}")
+                self.tools[name] = obj()
+
+    def add_tools(self, tool_folder: str):
+        """Add tools from the given folder.
+        Scan the folder and load all the non-abstract classes as tools.
+        """
+        # Ensure the folder path is absolute
+        folder_path = os.path.abspath(tool_folder)
+        for filename in os.listdir(folder_path):
+            if filename.endswith(".py") and not filename.startswith("__"):
+                self.logger.info(f"Loading tool from {filename}")
+                module_name = filename[:-3]  # Strip off '.py'
+                module_path = os.path.join(folder_path, filename)
+
+                spec = importlib.util.spec_from_file_location(module_name, module_path)
+                module = importlib.util.module_from_spec(spec)
+                sys.modules[module_name] = module
+                spec.loader.exec_module(module)
+
+                self.load_tools(module)
+
+    def _get_tool(self, tool_name: str) -> BaseTool:
+        """Get the tool by the given name."""
+        tool = self.tools.get(tool_name, None)
+        if not tool:
+            raise ValueError(f"Tool {tool_name} not found.")
+        return tool
+
+    async def invoke_tool(self, tool_name: str, input: Dict[str, Any]) -> Message:
+        """Invoke the tool by the given name with the input.
+
+        Args:
+            tool_name: The name of the tool to invoke.
+            input: The input params to the tool. It will be packed into a Message object.
+
+        """
+        tool = self._get_tool(tool_name)
+        message = Message(content=input)
+        tool_return = await tool(message)
+        return tool_return
 
 
 class LLMTool(BaseTool, ABC):
