@@ -457,7 +457,7 @@ class TestToolManager:
         return ToolForTest()
 
     def test_load_tools(self, monkeypatch):
-        manager = ToolManager()
+        manager = ToolManager(load_core_tools=False)
         tool = ToolForTest()
         manager.add_tool(tool)
         assert tool.tool_name in manager.tools
@@ -473,7 +473,7 @@ class TestToolManager:
 
     @pytest.mark.asyncio
     async def test_invoke_tool(self, monkeypatch):
-        manager = ToolManager()
+        manager = ToolManager(load_core_tools=False)
         tool = ToolForTest()
         manager.add_tool(tool)
 
