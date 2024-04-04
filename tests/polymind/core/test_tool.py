@@ -450,7 +450,7 @@ class TestBaseTool:
 class TestToolManager:
     @pytest.fixture
     def manager(self):
-        return ToolManager()
+        return ToolManager(load_core_tools=False)
 
     @pytest.fixture
     def tool(self):

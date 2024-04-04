@@ -295,13 +295,14 @@ class ToolManager:
 
     """
 
-    def __init__(self):
+    def __init__(self, load_core_tools: bool = True):
         """Load and initialize the core_tools by default."""
         # Tools indexed by the tool name, the value is the instance of the tool.
         self.logger = Logger(__name__)
         self.tools: Dict[str, BaseTool] = {}
         # Load the core tools by default
-        self.load_tools_from_directory("./polymind/core_tools")
+        if load_core_tools:
+            self.load_tools_from_directory("./polymind/core_tools")
 
     def load_tools_from_directory(self, directory_path):
         """Load all Python files as modules from the given directory."""
