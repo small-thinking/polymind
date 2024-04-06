@@ -49,4 +49,4 @@ jobs:
         echo "TAVILY_API_KEY=fake-api-key" >> $GITHUB_ENV
 
     - name: Run Pytest
-      run: poetry run pytest -v
+      run: poetry run pytest -vv

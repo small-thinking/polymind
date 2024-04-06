@@ -7,7 +7,7 @@ from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 
 from polymind.core.message import Message
-from polymind.core.tool import BaseTool, LLMTool
+from polymind.core.tool import BaseTool, LLMTool, ToolManager
 from polymind.core.utils import Logger
 
 
@@ -57,7 +57,7 @@ class BaseTask(BaseModel, ABC):
 class AtomTask(BaseTask):
     """The task that cannot be further breakdown."""
 
-    tool: LLMTool = Field(description="The LLM tool to use for the task.")
+    llm_tool: LLMTool = Field(description="The LLM tool to use for the task.")
     task_name: str = Field(default="simple-task", description="The name of the task.")
     task_context: str = Field(default="", description="The context of the task.")
 
@@ -82,6 +82,33 @@ class AtomTask(BaseTask):
         }
         --- end of example ---
     """
+
+    def __init__(self, tool_manager: ToolManager, **kwargs):
+        """Initializes an AtomTask object.
+
+        Args:
+            tool_manager (ToolManager): The tool manager that manages the tools.
+            **kwargs: Additional keyword arguments.
+        """
+        super().__init__(**kwargs)
+        self._tool_manager = tool_manager
+
+    async def _find_tool(self, objective: str) -> Message:
+        """Find the tool from the indexed tool knowledge base according to the prompt.
+
+        Args:
+            objective (str): The prompt that described what tools are needed.
+        """
+        # Rephrase the objective to a prompt that will be used to retrieve the tool with RAG.
+
+        # Retrieve the tool using ToolRetriever.
+
+        # Generate the parameters for the tool.
+
+        # Leverage the ToolManager to invoke the tool.
+
+        # Pack the results into the response message.
+        return None
 
     async def _execute(self, input: Message) -> Message:
         """Execute the task and return the result.

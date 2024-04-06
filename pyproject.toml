@@ -17,6 +17,7 @@ aiohttp = "^3.9.3"
 pymilvus = "2.3.7"
 faiss-cpu = "1.8.0"
 colorama = "^0.4.6"
+tavily-python = "^0.3.3"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.2.0"
