@@ -15,7 +15,7 @@ class RetrieveTool(BaseTool, ABC):
     """The base class for the retrieval tools."""
 
     descriptions: List[str] = Field(
-        defaults=[
+        default=[
             "The tool to retrieve the information based on the embedding of the query.",
             "The retrieval tool.",
             "The tool to search for information based on the embedding of the query.",
@@ -121,7 +121,7 @@ class IndexTool(BaseTool, ABC):
     """The base class for the tool to index any content."""
 
     descriptions: List[str] = Field(
-        defaults=[
+        default=[
             "The tool to index the content into the vector database.",
             "The data indexing tool.",
             "The tool to store information into the vector database.",
