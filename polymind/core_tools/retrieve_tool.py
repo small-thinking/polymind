@@ -14,6 +14,15 @@ from polymind.core_tools.llm_tool import OpenAIEmbeddingTool
 class RetrieveTool(BaseTool, ABC):
     """The base class for the retrieval tools."""
 
+    descriptions: List[str] = Field(
+        default=[
+            "The tool to retrieve the information based on the embedding of the query.",
+            "The retrieval tool.",
+            "The tool to search for information based on the embedding of the query.",
+        ],
+        description="The descriptions of the tool.",
+    )
+
     query_key: str = Field(default="input", description="The key to retrieve the query from the input message.")
     result_key: str = Field(default="results", description="The key to store the results in the output message.")
     embedder: Embedder = Field(description="The embedder to generate the embedding for the descriptions.")
