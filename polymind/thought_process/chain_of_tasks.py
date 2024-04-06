@@ -117,7 +117,7 @@ class ChainOfTasks(ThoughtProcess):
         tasks = []
         for idx, task_meta in enumerate(tasks_meta):
             task = AtomTask(
-                tool=self.reasoner,
+                llm_tool=self.reasoner,
                 task_name=task_meta["objective"],
                 # task_context=task_meta["context"],
             )
