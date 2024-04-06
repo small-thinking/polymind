@@ -137,7 +137,8 @@ class KnowledgeRetrieveTool(RetrieveTool):
         host = os.environ.get("MILVUS_HOST", "localhost")
         port = os.environ.get("MILVUS_PORT", 19530)
         self._client = MilvusClient(uri=f"http://{host}:{port}")
-        self._client.create_collection(self.collection_name, dimension=self.embed_dim, auto_id=True)
+        if not self._client.has_collection(self.collection_name):
+            self._client.create_collection(self.collection_name, dimension=self.embed_dim, auto_id=True)
         self.embedder = OpenAIEmbeddingTool(embed_dim=self.embed_dim)
 
     def _extra_input_spec(self) -> List[Param]:
@@ -203,7 +204,8 @@ class ToolRetriever(RetrieveTool):
         host = os.environ.get("MILVUS_HOST", "localhost")
         port = os.environ.get("MILVUS_PORT", 19530)
         self._client = MilvusClient(uri=f"http://{host}:{port}")
-        self._client.create_collection(self.collection_name, dimension=self.embed_dim, auto_id=True)
+        if not self._client.has_collection(self.collection_name):
+            self._client.create_collection(self.collection_name, dimension=self.embed_dim, auto_id=True)
         self.embedder = OpenAIEmbeddingTool(embed_dim=self.embed_dim)
 
     def _extra_input_spec(self) -> List[Param]:

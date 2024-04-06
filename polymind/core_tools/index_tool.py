@@ -134,9 +134,9 @@ class KnowledgeIndexTool(IndexTool):
         self._client = MilvusClient(uri=f"http://{host}:{port}")
         if self.recreate_collection:
             self._client.drop_collection(self.collection_name)
-        self._client.create_collection(
-            self.collection_name, dimension=self.embed_dim, consistency_level="Bounded", auto_id=True
-        )
+            self._client.create_collection(
+                self.collection_name, dimension=self.embed_dim, consistency_level="Bounded", auto_id=True
+            )
         self.embedder = OpenAIEmbeddingTool(embed_dim=self.embed_dim)
 
     def _extra_input_spec(self) -> List[Param]:
@@ -190,9 +190,9 @@ class ToolIndexer(IndexTool):
         self._client = MilvusClient(uri=f"http://{host}:{port}")
         if self.recreate_collections:
             self._client.drop_collection(self.collection_name)
-        self._client.create_collection(
-            self.collection_name, dimension=self.embed_dim, consistency_level="Bounded", auto_id=True
-        )
+            self._client.create_collection(
+                self.collection_name, dimension=self.embed_dim, consistency_level="Bounded", auto_id=True
+            )
         self.embedder = OpenAIEmbeddingTool(embed_dim=self.embed_dim)
 
     def _extra_input_spec(self) -> List[Param]:
