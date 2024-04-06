@@ -1,6 +1,6 @@
 import os
 from abc import ABC, abstractmethod
-from typing import Dict, List
+from typing import List
 
 from pydantic import Field
 from pymilvus import MilvusClient

@@ -171,13 +171,13 @@ class KnowledgeIndexTool(IndexTool):
 
 
 class ToolIndexer(IndexTool):
-    """ToolIndexer is used to index both the knowledge and the learned tools into the Milvus database."""
+    """ToolIndexer is used to index the tools into the Milvus database."""
 
     tool_name: str = "tool_indexer"
     descriptions: List[str] = [
-        "The tool to index the knowledge and learned tools into the Milvus database.",
+        "The tool to index the tools into the Milvus database.",
         "The tool indexing tool.",
-        "The tool to index the tools into the vector database.",
+        "The tool to store the knowledge of tools into the Milvus database.",
     ]
     collection_name: str = Field(default="tools", description="The name of the collection to store the tool data.")
     embedder: Embedder = Field(default=None, description="The embedder to generate the embedding for the descriptions.")
