@@ -1,83 +1,71 @@
-import inspect
-import logging
-import os
-from enum import Enum
-from typing import Any
+import json
+import re
+from typing import Any, Dict, List, get_args, get_origin
 
-from colorama import Fore, ansi
-from dotenv import load_dotenv
+from polymind.core.tool import BaseTool, Param
 
 
-class Logger:
-    _instance = None
+def json_text_to_tool_param(json_text: str, tool: BaseTool) -> Dict[str, Any]:
+    """Convert the JSON text that contains the params to call the tool to the tool parameter dictionary.
 
-    class LoggingLevel(Enum):
-        DEBUG = 1
-        INFO = 2
-        TOOL = 3
-        TASK = 4
-        THOUGHT_PROCESS = 5
-        WARNING = 6
-        ERROR = 7
-        CRITICAL = 8
+    Args:
+        json_text (str): The JSON text that contains the params to call the tool.
+        tool_input_spec (List[Param]): The tool input specification.
+    """
+    # Extract and parse the JSON text to the dictionary
+    if "```" in json_text:
+        groups = re.findall(r"```json(.*?)```", json_text, re.DOTALL)
+        if groups:
+            tool_param = groups[0]
+        else:
+            raise ValueError(f"The JSON text is not in the correct format. {json_text}")
+    else:
+        tool_param = json_text
+    tool_param_dict = json.loads(tool_param)
+    input_spec: List[Param] = tool.input_spec()
 
-        def __lt__(self, other):
-            return self.value < other.value
+    # Convert the string to the correct type according to the input_spec
+    tool_param_dict_typed = {}
+    for param in input_spec:
+        param_name = param.name
+        if param_name in tool_param_dict:
+            param_value = tool_param_dict[param_name]
+            expected_param_type = eval(param.type)
+            try:
+                if get_origin(expected_param_type) is list:
+                    if isinstance(param_value, str) or not isinstance(param_value, list):
+                        raise ValueError(f"The field '{param_name}' must be a list, but got '{param_value}'.")
+                    element_type = get_args(expected_param_type)[0]
+                    tool_param_dict_typed[param_name] = [convert_value(item, element_type) for item in param_value]
+                elif get_origin(expected_param_type) is dict:
+                    key_type, value_type = get_args(expected_param_type)
+                    if not isinstance(param_value, dict):
+                        raise ValueError(f"The field '{param_name}' must be a dictionary, but got '{param_value}'.")
+                    tool_param_dict_typed[param_name] = {
+                        convert_value(k, key_type): convert_value(v, value_type) for k, v in param_value.items()
+                    }
+                else:
+                    tool_param_dict_typed[param_name] = convert_value(param_value, expected_param_type)
+            except (ValueError, TypeError) as e:
+                raise ValueError(
+                    f"{tool.tool_name}: The field '{param_name}' must be of type '{param.type}', "
+                    f"but failed to convert the value '{param_value}': {e}"
+                )
+        elif param.required:
+            raise ValueError(f"The required parameter {param_name} is not provided.")
 
-        def __ge__(self, other):
-            return self.value >= other.value
+    return tool_param_dict_typed
 
-        def __le__(self, other):
-            return self.value <= other.value
 
-        def __gt__(self, other):
-            return self.value > other.value
-
-    def __new__(cls, *args, **kwargs):
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-        return cls._instance
-
-    def __init__(self, logger_name: str, verbose: bool = True, level: Any = logging.INFO):
-        if not hasattr(self, "logger"):
-            load_dotenv(override=True)
-            self.logging_level = Logger.LoggingLevel[os.getenv("LOGGING_LEVEL", "TOOL")]
-            self.logger = logging.getLogger(logger_name)
-            self.logger.setLevel(level=level)
-            self.formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s (%(filename)s:%(lineno)d)")
-            self.console_handler = logging.StreamHandler()
-            self.console_handler.setLevel(level=level)
-            self.console_handler.setFormatter(self.formatter)
-            self.logger.addHandler(self.console_handler)
-
-    def log(self, message: str, level: LoggingLevel, color: str = ansi.Fore.GREEN) -> None:
-        if level >= self.logging_level:
-            caller_frame = inspect.stack()[2]
-            caller_name = caller_frame[3]
-            caller_line = caller_frame[2]
-            message = f"{caller_name}({caller_line}): {message}"
-            self.logger.info(color + message + Fore.RESET)
-
-    def debug(self, message: str) -> None:
-        self.log(message, Logger.LoggingLevel.DEBUG, Fore.BLACK)
-
-    def info(self, message: str) -> None:
-        self.log(message, Logger.LoggingLevel.INFO, Fore.WHITE)
-
-    def tool_log(self, message: str) -> None:
-        self.log(message, Logger.LoggingLevel.TOOL, Fore.YELLOW)
-
-    def task_log(self, message: str) -> None:
-        self.log(message, Logger.LoggingLevel.TASK, Fore.BLUE)
-
-    def thought_process_log(self, message: str) -> None:
-        self.log(message, Logger.LoggingLevel.THOUGHT_PROCESS, Fore.GREEN)
-
-    def warning(self, message: str) -> None:
-        self.log(message, Logger.LoggingLevel.WARNING, Fore.YELLOW)
-
-    def error(self, message: str) -> None:
-        self.log(message, Logger.LoggingLevel.ERROR, Fore.RED)
-
-    def critical(self, message: str) -> None:
-        self.log(message, Logger.LoggingLevel.CRITICAL, Fore.MAGENTA)
+def convert_value(value: Any, target_type: type) -> Any:
+    """Convert the value to the target type."""
+    if target_type == int:
+        return int(value)
+    elif target_type == float:
+        return float(value)
+    elif target_type == bool:
+        return bool(value)
+    elif target_type == str:
+        return str(value)
+    else:
+        return value

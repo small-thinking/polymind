@@ -6,9 +6,9 @@ from typing import Dict, List
 from pydantic import Field
 
 from polymind.core.agent import Agent, ThoughtProcess
+from polymind.core.logger import Logger
 from polymind.core.message import Message
 from polymind.core.task import AtomTask, SequentialTask
-from polymind.core.utils import Logger
 from polymind.core_tools.llm_tool import LLMTool
 
 

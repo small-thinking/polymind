@@ -6,8 +6,7 @@ from typing import List
 
 from pydantic import Field
 
-from polymind.core.embedder import Embedder
-from polymind.core.tool import BaseTool, Param
+from polymind.core.tool import BaseTool, Embedder, Param
 
 
 class Indexer(BaseTool, ABC):

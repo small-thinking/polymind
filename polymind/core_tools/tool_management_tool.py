@@ -7,11 +7,10 @@ import faiss
 import numpy as np
 from pydantic import Field
 
-from polymind.core.embedder import Embedder
 from polymind.core.indexer import Indexer
+from polymind.core.logger import Logger
 from polymind.core.message import Message
-from polymind.core.tool import BaseTool, Param
-from polymind.core.utils import Logger
+from polymind.core.tool import BaseTool, Embedder, Param
 from polymind.core_tools.llm_tool import (LLMTool, OpenAIChatTool,
                                           OpenAIEmbeddingTool)
 
