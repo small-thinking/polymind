@@ -11,8 +11,8 @@ from typing import Any, Dict, List, Union, get_origin
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field, field_validator
 
+from polymind.core.logger import Logger
 from polymind.core.message import Message
-from polymind.core.utils import Logger
 
 
 class Param(BaseModel):
@@ -329,7 +329,8 @@ class ToolManager:
         for name, obj in inspect.getmembers(module, inspect.isclass):
             if issubclass(obj, BaseTool) and not inspect.isabstract(obj):
                 self.logger.info(f"Loading tool {name}")
-                self.tools[name] = obj()
+                tool_obj = obj()
+                self.tools[tool_obj.tool_name] = obj()
 
     def add_tools(self, tool_folder: str):
         """Add tools from the given folder.
@@ -350,11 +351,12 @@ class ToolManager:
 
                 self.load_tools(module)
 
-    def _get_tool(self, tool_name: str) -> BaseTool:
+    def get_tool(self, tool_name: str) -> BaseTool:
         """Get the tool by the given name."""
         tool = self.tools.get(tool_name, None)
         if not tool:
-            raise ValueError(f"Tool {tool_name} not found.")
+            available_tools = ", ".join(self.tools.keys())
+            raise ValueError(f"Tool {tool_name} not found. Available tools: {available_tools}")
         return tool
 
     async def invoke_tool(self, tool_name: str, input: Dict[str, Any]) -> Message:
@@ -365,7 +367,7 @@ class ToolManager:
             input: The input params to the tool. It will be packed into a Message object.
 
         """
-        tool = self._get_tool(tool_name)
+        tool = self.get_tool(tool_name)
         message = Message(content=input)
         tool_return = await tool(message)
         return tool_return
@@ -436,4 +438,151 @@ class LLMTool(BaseTool, ABC):
         response_message = await self._invoke(input)
         if "output" not in response_message.content:
             raise ValueError("The response message must contain the 'output' key.")
+        return response_message
+
+
+class Embedder(BaseTool, ABC):
+    """The embedder is a tool to generate the embedding for the input."""
+
+    tool_name: str = "embedder"
+    embed_dim: int = Field(default=384, description="The embedding dimension.")
+
+    def input_spec(self) -> List[Param]:
+        return [
+            Param(
+                name="input",
+                type="List[str]",
+                description="The input to be embedded.",
+                example="""[
+                    "The tool to help find external knowledge",
+                    "The search engine tool",
+                ]""",
+            ),
+        ]
+
+    def output_spec(self) -> List[Param]:
+        return [
+            Param(
+                name="embeddings",
+                type="List[List[float]]",
+                description="The embedding of the input.",
+                example="[[0.1, 0.2, 0.3]]",
+            ),
+        ]
+
+    @abstractmethod
+    async def _embedding(self, input: List[str]) -> List[List[float]]:
+        """Generate the embedding for the input."""
+        pass
+
+    async def _execute(self, input_message: Message) -> Message:
+        """Generate the embedding for the input."""
+        input = input_message.content["input"]
+        embedding = await self._embedding(input)
+        return Message(content={"embeddings": embedding})
+
+
+class RetrieveTool(BaseTool, ABC):
+    """The base class for the retrieval tools."""
+
+    descriptions: List[str] = Field(
+        default=[
+            "The tool to retrieve the information based on the embedding of the query.",
+            "The retrieval tool.",
+            "The tool to search for information based on the embedding of the query.",
+        ],
+        description="The descriptions of the tool.",
+    )
+
+    query_key: str = Field(default="input", description="The key to retrieve the query from the input message.")
+    result_key: str = Field(default="results", description="The key to store the results in the output message.")
+    embedder: Embedder = Field(description="The embedder to generate the embedding for the descriptions.")
+    top_k: int = Field(default=3, description="The number of top results to retrieve.")
+
+    model_config = {
+        "arbitrary_types_allowed": True,
+    }
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._set_client()
+
+    @abstractmethod
+    def _set_client(self):
+        """Set the client for the retrieval tool."""
+        pass
+
+    def input_spec(self) -> List[Param]:
+        input_spec = [
+            Param(
+                name=self.query_key,
+                type="str",
+                required=True,
+                description="The query to retrieve the information.",
+                example="What is the capital of France?",
+            ),
+            Param(
+                name="top_k",
+                type="int",
+                required=False,
+                description="The number of top results to retrieve.",
+                example="3",
+            ),
+        ]
+        input_spec.extend(self._extra_input_spec())
+        return input_spec
+
+    @abstractmethod
+    def _extra_input_spec(self) -> List[Param]:
+        """Any extra input spec for the specific retrieval tool.
+        Those fields can be used in _retrieve method.
+        """
+        pass
+
+    def output_spec(self) -> List[Param]:
+        output_spec = [
+            Param(
+                name=self.result_key,
+                type="List[str]",
+                required=True,
+                description="The top k results retrieved by the tool.",
+                example="""[
+                    "The capital of France is Paris.",
+                    "Paris is the capital of France.",
+                    "France's capital is Paris.",
+                ]""",
+            ),
+        ]
+        return output_spec
+
+    @abstractmethod
+    async def _retrieve(self, input: Message, query_embedding: List[float]) -> Message:
+        """Retrieve the information based on the query.
+
+        Args:
+            input (Message): The input message containing the query. It should have fields defined in the input_spec.
+            query_embedding (List[List[float]]): The embedding of the query.
+
+        Return:
+            Message: The message containing the retrieved information.
+        """
+        pass
+
+    async def _execute(self, input: Message) -> Message:
+        """Retrieve the information based on the query.
+
+        The query will first be converted to an embedding using the embedder, and put into the field "embeddings".
+        Then, the embedding will be used to retrieve the information from the database.
+        The results will be stored in the field defined in the result_key, "results" by default.
+
+        Args:
+            input (Message): The input message containing the query. It should have fields defined in the input_spec.
+        """
+        # Get the embeddings for the query.
+        query = input.content.get(self.query_key, "")
+        embed_message = Message(content={"input": [query]})
+        embedding_message = await self.embedder(embed_message)
+        embedding_message.content["embeddings"]
+        # Retrieve the information based on the query.
+        response_message = await self._retrieve(input=input, query_embedding=embedding_message.content["embeddings"])
         return response_message

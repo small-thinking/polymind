@@ -6,9 +6,10 @@ from typing import List, Optional
 from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 
+from polymind.core.logger import Logger
 from polymind.core.message import Message
-from polymind.core.tool import BaseTool, LLMTool, ToolManager
-from polymind.core.utils import Logger
+from polymind.core.tool import BaseTool, LLMTool, RetrieveTool, ToolManager
+from polymind.core.utils import json_text_to_tool_param
 
 
 class BaseTask(BaseModel, ABC):
@@ -57,33 +58,65 @@ class BaseTask(BaseModel, ABC):
 class AtomTask(BaseTask):
     """The task that cannot be further breakdown."""
 
-    llm_tool: LLMTool = Field(description="The LLM tool to use for the task.")
+    llm_tool: LLMTool = Field(..., description="The LLM tool to use for the task.")
     task_name: str = Field(default="simple-task", description="The name of the task.")
     task_context: str = Field(default="", description="The context of the task.")
+    tool_retrieve_query_key: str = Field(default="input", description="The key to retrieve the tool.")
 
     system_prompt: str = """
         Please help answer the below question, and put your answer into the json format.
         The result should be put as the key "output".
 
+        You need to first identify whether this question can be answered directly, or it requires a tool.
+
+        If this question can be answered directly, please provide the answer in the "output" field.
+        If this question requires a tool, please provide an "action" field, and the value of the "action" field
+        should be a description on what tool is needed.
+
         Some examples are as follows:
         --- start of example ---
         1. What's the height of the Eiffel Tower?
-
         Answer:
         {
             "output": {"context": "height of Eiffel", "answer": "330 meters"}
         }
 
         2. What's the top 3 countries by population?
-
         Answer:
         {
             "output": {"context": "top 3 countries by population", "answer": ["China", "India", "United States"]}
         }
+
+        3. What is the stock price of Tesla today?
+        Answer:
+        {
+            "action": "Search for the stock price of Tesla as of 2024-01-01."
+        }
         --- end of example ---
+        Please put the answer in the ```json blob```.
     """
 
-    def __init__(self, tool_manager: ToolManager, **kwargs):
+    llm_tool_prompt: str = """
+        Your task is to generate the parameters for the tool to be used, according to its input spec.
+        The below is the input_spec.
+        Please generate the parameters and return in open function format.
+        ---
+        {tool_spec}
+        ---
+        Please put the result into the ```json blob```. An example is as follows:
+        ```json
+        {{
+            "param1": "value1",
+            "param2": [1, 2, 3],
+            "param3": {{
+                "sub_param1": "sub_value1",
+                "sub_param2": 100
+            }}
+        }}
+        ```
+    """
+
+    def __init__(self, tool_manager: ToolManager, tool_retriever: RetrieveTool, **kwargs):
         """Initializes an AtomTask object.
 
         Args:
@@ -92,23 +125,42 @@ class AtomTask(BaseTask):
         """
         super().__init__(**kwargs)
         self._tool_manager = tool_manager
+        self._tool_retriever = tool_retriever
 
-    async def _find_tool(self, objective: str) -> Message:
-        """Find the tool from the indexed tool knowledge base according to the prompt.
+    async def _use_tool(self, objective: str, tool_description: str) -> Message:
+        """Find and use the tool from the indexed tool knowledge base according to the prompt.
+        The final result will be put into the "output" field of the response message.
 
         Args:
-            objective (str): The prompt that described what tools are needed.
+            objective (str): The objective of the task.
+            tool_description (str): The description of the tool.
         """
-        # Rephrase the objective to a prompt that will be used to retrieve the tool with RAG.
-
         # Retrieve the tool using ToolRetriever.
-
+        tool_retrieve_message = Message(content={self.tool_retrieve_query_key: tool_description, "top_k": 1})
+        tool_retrieve_result_message = await self._tool_retriever(tool_retrieve_message)
+        self._logger.debug(f"Tool retrieve result: {tool_retrieve_result_message.content}")
+        tool_name = tool_retrieve_result_message.content["results"][0]["tool_name"]
+        self._logger.info(f"Retrieve the tool: [{tool_name}]")
+        tool_instance = self._tool_manager.get_tool(tool_name)
+        if not tool_instance:
+            raise ValueError(f"Cannot find the tool: [{tool_name}] from the tool manager.")
+        tool_spec = tool_instance.to_open_function_format()
+        json_blob = json.dumps(tool_spec)
         # Generate the parameters for the tool.
-
-        # Leverage the ToolManager to invoke the tool.
-
-        # Pack the results into the response message.
-        return None
+        tool_param_gen_prompt = self.llm_tool_prompt.format(
+            tool_spec=json_blob,
+        )
+        tool_param_gen_message = Message(content={"input": tool_param_gen_prompt})
+        tool_param_result_message = await self.llm_tool(tool_param_gen_message)
+        tool_param_json_text = tool_param_result_message.content.get("output", "")
+        self._logger.debug(f"Tool param generation result: {tool_param_json_text}")
+        tool_param_dict = json_text_to_tool_param(json_text=tool_param_json_text, tool=tool_instance)
+        tool_param_message = Message(content=tool_param_dict)
+        # Invoke the tool with the parameters.
+        tool_response_message = await tool_instance(tool_param_message)
+        # Pack the top 2 results into the response message.
+        response = Message(content=tool_response_message.content)
+        return response
 
     async def _execute(self, input: Message) -> Message:
         """Execute the task and return the result.
@@ -136,7 +188,8 @@ class AtomTask(BaseTask):
             {prompt}
             ---
         """
-        llm_response = await self.tool(Message(content={"input": enhanced_prompt}))
+        # Use the LLM tool to identify whether the question can be answered directly or requires a tool.
+        llm_response = await self.llm_tool(Message(content={"input": enhanced_prompt}))
         content = llm_response.content["output"]
         # Extract the answer from the ```json blob```.
         if "```" in content:
@@ -145,8 +198,15 @@ class AtomTask(BaseTask):
                 raise ValueError("Cannot find the answer in the response.")
             content = answers[0]
         answer_blob = json.loads(content)
-        response = Message(content={"output": answer_blob["output"]})
-        return response
+        # Directly answer the question.
+        if "output" in answer_blob:
+            response = Message(content={"output": answer_blob["output"]})
+            return response
+        else:
+            # Find the tool to answer the question.
+            self._logger.info("Use the tool to answer the question.")
+            tool_response = await self._use_tool(objective=self.task_name, tool_description=answer_blob["action"])
+            return tool_response
 
 
 class CompositeTask(BaseTask, ABC):

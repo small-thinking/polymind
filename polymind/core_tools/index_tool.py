@@ -5,9 +5,8 @@ from typing import Dict, List
 from pydantic import Field
 from pymilvus import MilvusClient
 
-from polymind.core.embedder import Embedder
 from polymind.core.message import Message
-from polymind.core.tool import BaseTool, Param
+from polymind.core.tool import BaseTool, Embedder, Param
 from polymind.core_tools.llm_tool import OpenAIEmbeddingTool
 
 
@@ -126,7 +125,7 @@ class KnowledgeIndexTool(IndexTool):
     collection_name: str = Field(default="knowledge", description="The name of the database to store the data.")
     embedder: Embedder = Field(default=None, description="The embedder to generate the embedding for the descriptions.")
     embed_dim: int = Field(default=384, description="The dimension of the embedding.")
-    recreate_collection: bool = Field(default=True, description="Whether to recreate the collection.")
+    recreate_collection: bool = Field(default=False, description="Whether to recreate the collection.")
 
     def _set_client(self):
         host = os.environ.get("MILVUS_HOST", "localhost")

@@ -9,10 +9,9 @@ from typing import List
 from openai import AsyncOpenAI
 from pydantic import Field
 
-from polymind.core.embedder import Embedder
+from polymind.core.logger import Logger
 from polymind.core.message import Message
-from polymind.core.tool import BaseTool, LLMTool, Param
-from polymind.core.utils import Logger
+from polymind.core.tool import BaseTool, Embedder, LLMTool, Param
 from polymind.core_tools.rest_api_tool import RestAPITool
 
 

@@ -2,18 +2,15 @@
     poetry run pytest tests/polymind/core/test_tool.py
 """
 
-import importlib.util
 import json
 import os
 from typing import List
-from unittest.mock import Mock, patch
 
 import pytest
 from pydantic import ValidationError
 
 from polymind.core.message import Message
 from polymind.core.tool import BaseTool, Param, ToolManager
-from polymind.core.utils import Logger
 
 
 class TestParam:
@@ -465,11 +462,11 @@ class TestToolManager:
     def test_get_tool(self, manager, tool):
         manager.tools = {"ToolForTest": tool}
 
-        tool_instance = manager._get_tool("ToolForTest")
+        tool_instance = manager.get_tool("ToolForTest")
         assert tool_instance == tool
 
         with pytest.raises(ValueError):
-            manager._get_tool("NonExistentTool")
+            manager.get_tool("NonExistentTool")
 
     @pytest.mark.asyncio
     async def test_invoke_tool(self, monkeypatch):
