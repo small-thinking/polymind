@@ -1,5 +1,5 @@
 import json
-from typing import Any, Dict, List
+from typing import Any, Dict
 
 from pydantic import BaseModel, field_validator
 
@@ -29,7 +29,7 @@ class Message(BaseModel):
     def get(self, key: str, default: Any = None) -> Any:
         return self.content.get(key, default)
 
-    def get_fields(self) -> List[Dict[str, str]]:
+    def get_fields(self) -> Dict[str, Any]:
         return self.content.get("fields", {})
 
     def get_fields_json(self) -> str:
