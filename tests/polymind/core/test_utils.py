@@ -125,7 +125,7 @@ def test_json_text_to_tool_param_with_missing_required_param():
     """
     with pytest.raises(ValueError) as exc_info:
         json_text_to_tool_param(json_text, tool)
-    assert "The required parameter is_adult is not provided." in str(exc_info.value)
+    assert "The required parameter [is_adult] is not provided." in str(exc_info.value)
 
 
 def test_json_text_to_tool_param_with_incorrect_type_fixable():

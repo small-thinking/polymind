@@ -298,7 +298,7 @@ class ToolManager:
     def __init__(self, load_core_tools: bool = True):
         """Load and initialize the core_tools by default."""
         # Tools indexed by the tool name, the value is the instance of the tool.
-        self.logger = Logger(__name__)
+        self._logger = Logger(__name__)
         self.tools: Dict[str, BaseTool] = {}
         # Load the core tools by default
         if load_core_tools:
@@ -308,7 +308,7 @@ class ToolManager:
         """Load all Python files as modules from the given directory."""
         for filename in os.listdir(directory_path):
             if filename.endswith(".py") and not filename.startswith("__"):
-                self.logger.debug(f"Loading tool from {filename}")
+                self._logger.debug(f"Loading tool from {filename}")
                 file_path = os.path.join(directory_path, filename)
                 self.load_tool_from_file(file_path)
 
@@ -328,7 +328,7 @@ class ToolManager:
         """Scan a module for tool classes and instantiate them."""
         for name, obj in inspect.getmembers(module, inspect.isclass):
             if issubclass(obj, BaseTool) and not inspect.isabstract(obj):
-                self.logger.info(f"Loading tool {name}")
+                self._logger.info(f"Loading tool {name}")
                 tool_obj = obj()
                 self.tools[tool_obj.tool_name] = obj()
 
@@ -340,7 +340,7 @@ class ToolManager:
         folder_path = os.path.abspath(tool_folder)
         for filename in os.listdir(folder_path):
             if filename.endswith(".py") and not filename.startswith("__"):
-                self.logger.info(f"Loading tool from {filename}")
+                self._logger.info(f"Loading tool from {filename}")
                 module_name = filename[:-3]  # Strip off '.py'
                 module_path = os.path.join(folder_path, filename)
 
@@ -498,6 +498,7 @@ class RetrieveTool(BaseTool, ABC):
     result_key: str = Field(default="results", description="The key to store the results in the output message.")
     embedder: Embedder = Field(description="The embedder to generate the embedding for the descriptions.")
     top_k: int = Field(default=3, description="The number of top results to retrieve.")
+    enable_ranking: bool = Field(default=False, description="Enable ranking for the retrieved contents.")
 
     model_config = {
         "arbitrary_types_allowed": True,
@@ -568,6 +569,19 @@ class RetrieveTool(BaseTool, ABC):
         """
         pass
 
+    @abstractmethod
+    async def _ranking(self, input: Message, response: Message) -> Message:
+        """Rank the retrieved results based on the query.
+
+        Args:
+            input (Message): The input message containing the query.
+            response (Message): The message containing the retrieved results.
+
+        Return:
+            Message: The message containing the ranked results. The format should be the same as the input message.
+        """
+        pass
+
     async def _execute(self, input: Message) -> Message:
         """Retrieve the information based on the query.
 
@@ -585,4 +599,6 @@ class RetrieveTool(BaseTool, ABC):
         embedding_message.content["embeddings"]
         # Retrieve the information based on the query.
         response_message = await self._retrieve(input=input, query_embedding=embedding_message.content["embeddings"])
+        if self.enable_ranking:  # Rank the retrieved results based on the query.
+            response_message = await self._ranking(input=input, response=response_message)
         return response_message

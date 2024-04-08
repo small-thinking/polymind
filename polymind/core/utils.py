@@ -5,6 +5,23 @@ from typing import Any, Dict, List, get_args, get_origin
 from polymind.core.tool import BaseTool, Param
 
 
+def extract_content_from_blob(text: str, blob_type: str = "json") -> str:
+    """Extract the content from the blob in the text.
+
+    Args:
+        text (str): The text that contains the blob.
+        blob_type (str): The type of the blob. Default is "json".
+
+    Returns:
+        str: The content extracted from the blob.
+    """
+    if f"```{blob_type}" in text:
+        groups = re.findall(rf"```{blob_type}(.*?)```", text, re.DOTALL)
+        if groups:
+            return groups[0]
+    return text
+
+
 def json_text_to_tool_param(json_text: str, tool: BaseTool) -> Dict[str, Any]:
     """Convert the JSON text that contains the params to call the tool to the tool parameter dictionary.
 
@@ -52,7 +69,9 @@ def json_text_to_tool_param(json_text: str, tool: BaseTool) -> Dict[str, Any]:
                     f"but failed to convert the value '{param_value}': {e}"
                 )
         elif param.required:
-            raise ValueError(f"The required parameter {param_name} is not provided.")
+            raise ValueError(
+                f"The required parameter [{param_name}] is not provided. Provided params: {tool_param_dict}"
+            )
 
     return tool_param_dict_typed
 

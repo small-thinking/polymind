@@ -140,9 +140,9 @@ class TavilyRestAPITool(RestAPITool):
 
     tool_name: str = "tavily-rest-api-tool"
     descriptions: List[str] = [
-        "This tool is used to call the Tavily API.",
-        "This tool uses search engine to answer questions.",
-        "This tool can be used to search for information on the internet.",
+        "Search engine to search for external information.",
+        "Search for information on the internet for timely information.",
+        "External search engine to search for public information.",
     ]
 
     def __init__(self):
@@ -161,7 +161,7 @@ class TavilyRestAPITool(RestAPITool):
                 type="str",
                 required=True,
                 description="The question to search for.",
-                example="What is the latest stock price of Tesla?",
+                example="The search keywords.",
             ),
         ]
 
