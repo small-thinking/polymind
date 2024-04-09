@@ -45,7 +45,7 @@ class TestRestAPITool:
                         "Content-Type": "application/json",
                         "Authorization": "Bearer correct-token",
                     },
-                    "param": {
+                    "params": {
                         "start_date": "2024-03-12",
                         "end_date": "2024-03-17",
                         "tags": ["Design2Code"],
@@ -71,7 +71,7 @@ class TestRestAPITool:
                     "url": "https://wenling-production.up.railway.app/query-article/",
                     "method": "POST",
                     "headers": {"Content-Type": "application/json"},
-                    "param": {"start_date": "2024-03-12", "end_date": "2024-03-17"},
+                    "params": {"start_date": "2024-03-12", "end_date": "2024-03-17"},
                 }
             )
 
@@ -93,7 +93,7 @@ class TestRestAPITool:
                     "url": "https://wenling-production.up.railway.app/query-article/",
                     "method": "POST",
                     "headers": {},  # Missing required fields
-                    "param": {"start_date": "2024-03-12", "end_date": "2024-03-17"},
+                    "params": {"start_date": "2024-03-12", "end_date": "2024-03-17"},
                 }
             )
 
@@ -119,7 +119,7 @@ class TestRestAPITool:
                         "Content-Type": "application/json",
                         "Authorization": "Bearer correct-token",
                     },
-                    "body": {
+                    "params": {
                         # "start_date" intentionally omitted to simulate the error
                         "end_date": "2024-03-17",
                         "tags": ["Design2Code"],

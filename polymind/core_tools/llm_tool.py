@@ -193,7 +193,7 @@ class OpenAIEmbeddingTool(Embedder):
             "Content-Type": "application/json",
             "Authorization": f"Bearer {openai_api_key}",
         }
-        body = {
+        params = {
             "model": self.embedding_model,
             "input": input,
             "dimension": self.embed_dim,
@@ -203,7 +203,7 @@ class OpenAIEmbeddingTool(Embedder):
                 "url": self.url,
                 "method": "POST",
                 "headers": headers,
-                "body": body,
+                "params": params,
                 "dimensions": self.embed_dim,
             }
         )

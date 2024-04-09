@@ -9,6 +9,7 @@ from polymind.core.agent import Agent, ThoughtProcess
 from polymind.core.logger import Logger
 from polymind.core.message import Message
 from polymind.core.task import AtomTask, SequentialTask
+from polymind.core.tool import RetrieveTool, ToolManager
 from polymind.core_tools.llm_tool import LLMTool
 
 
@@ -29,6 +30,7 @@ class ChainOfTasks(ThoughtProcess):
     retry_interval: int = Field(default=5, description="The interval between retries in seconds.")
 
     problem_decomposition_prompt: str = """
+        Please read the requirement carefully, and think step-by-step before answering the question.
         Please decompose the problem into 1-5 steps, depending on the complexity of the problem.
 
         Each of the following sub-task will use the output of the previous task as input.
@@ -59,10 +61,22 @@ class ChainOfTasks(ThoughtProcess):
         }
     """
 
-    def __init__(self, reasoner: LLMTool, **kwargs):
+    def __init__(
+        self,
+        reasoner: LLMTool,
+        tool_manager: ToolManager,
+        tool_retriever: RetrieveTool,
+        **kwargs,
+    ):
         super().__init__(**kwargs)
         self._logger = Logger(__file__)
         self.reasoner = reasoner
+        self._tool_manager = tool_manager
+        self._tool_retriever = tool_retriever
+        if not self._tool_manager:
+            raise ValueError("Tool manager is not provided.")
+        if not self._tool_retriever:
+            raise ValueError("Tool retriever is not provided.")
 
     async def _breakdown_problem(self, input: Message) -> List[Dict[str, str]]:
         """Break down the problem into a series of tasks."""
@@ -118,8 +132,9 @@ class ChainOfTasks(ThoughtProcess):
         for idx, task_meta in enumerate(tasks_meta):
             task = AtomTask(
                 llm_tool=self.reasoner,
+                tool_manager=self._tool_manager,
+                tool_retriever=self._tool_retriever,
                 task_name=task_meta["objective"],
-                # task_context=task_meta["context"],
             )
             tasks.append(task)
             self._logger.task_log(f"Task {idx + 1}: {task_meta['objective']} constructed.")

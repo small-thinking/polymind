@@ -1,3 +1,4 @@
+import json
 import os
 from typing import List
 
@@ -6,8 +7,9 @@ from pymilvus import MilvusClient
 
 from polymind.core.logger import Logger
 from polymind.core.message import Message
-from polymind.core.tool import Embedder, Param, RetrieveTool
-from polymind.core_tools.llm_tool import OpenAIEmbeddingTool
+from polymind.core.tool import Embedder, LLMTool, Param, RetrieveTool
+from polymind.core.utils import extract_content_from_blob
+from polymind.core_tools.llm_tool import OpenAIChatTool, OpenAIEmbeddingTool
 
 
 class KnowledgeRetrieveTool(RetrieveTool):
@@ -17,9 +19,9 @@ class KnowledgeRetrieveTool(RetrieveTool):
 
     tool_name: str = "knowledge_retrieve_tool"
     descriptions: List[str] = [
-        "The tool to retrieve the knowledge from the Milvus database.",
-        "The knowledge retrieval tool.",
-        "The tool to search for information from the Milvus database.",
+        "The tool to retrieve the local knowledge from the Milvus database.",
+        "The knowledge retrieval customized information locally.",
+        "The tool to search for personal information from the Milvus database.",
     ]
     collection_name: str = Field(default="knowledge", description="The name of the database to store the data.")
     fields_to_retrieve: List[str] = Field(["content"], description="The keys to retrieve from the knowledge.")
@@ -56,6 +58,16 @@ class KnowledgeRetrieveTool(RetrieveTool):
             ),
         ]
         return extra_params
+
+    async def _ranking(self, input: Message, response: Message) -> Message:
+        """Rank the input based on the query.
+
+        Args:
+            input (Message): The input message.
+            response (Message): The response message.
+        """
+        # TODO: Implement the ranking algorithm. For now, just return the response.
+        return response
 
     async def _retrieve(self, input: Message, query_embedding: List[float]) -> Message:
         # Convert from ndarray to list of list of float and there should be only one embedding.
@@ -99,6 +111,40 @@ class ToolRetriever(RetrieveTool):
     embedder: Embedder = Field(default=None, description="The embedder to generate the embedding for the descriptions.")
     embed_dim: int = Field(default=384, description="The dimension of the embedding.")
 
+    rank_tool_prompt_template: str = """
+        Please rank the tools based on the query query.
+        Please keep the json format as is, just change the order of the tools.
+
+        The query:
+        {query}
+
+        The retrieved tools:
+        {candidates}
+
+        Example ranked list in json format:
+        ```json
+        [
+            {{
+                'tool_name': 'tool_b',
+                'descriptions': ['tool_b_desc1', 'tool_b_desc2'],
+                'tool_file_name': 'file_b.py',
+            }},
+            {{
+                'tool_name': 'tool_a',
+                'descriptions': ['tool_a_desc1', 'tool_a_desc2'],
+                'tool_file_name': 'file_a.py',
+            }},
+            {{
+                'tool_name': 'tool_c',
+                'descriptions': ['tool_c_desc1', 'tool_c_desc2'],
+                'tool_file_name': 'file_c.py',
+            }}
+        ]
+        ```
+
+        Please return the ranked tools in the ```json``` format.
+    """
+
     def _set_client(self):
         host = os.environ.get("MILVUS_HOST", "localhost")
         port = os.environ.get("MILVUS_PORT", 19530)
@@ -106,6 +152,8 @@ class ToolRetriever(RetrieveTool):
         if not self._client.has_collection(self.collection_name):
             self._client.create_collection(self.collection_name, dimension=self.embed_dim, auto_id=True)
         self.embedder = OpenAIEmbeddingTool(embed_dim=self.embed_dim)
+        self._llm_tool: LLMTool = OpenAIChatTool()
+        self._logger = Logger(__file__)
 
     def _extra_input_spec(self) -> List[Param]:
         extra_params = [
@@ -125,6 +173,27 @@ class ToolRetriever(RetrieveTool):
             ),
         ]
         return extra_params
+
+    async def _ranking(self, input: Message, response: Message) -> Message:
+        """Rank the input based on the query.
+
+        Args:
+            input (Message): The input message.
+            response (Message): The response message.
+        """
+        candidates = response.content.get(self.result_key)
+        ranking_prompt = self.rank_tool_prompt_template.format(
+            query=input.content.get(self.query_key), candidates=candidates
+        )
+        self._logger.debug(f"Before ranking: {candidates}")
+        ranking_result_message = await self._llm_tool(Message(content={"input": ranking_prompt}))
+        ranking_result_text = ranking_result_message.content.get("output", "")
+        ranked_text = extract_content_from_blob(text=ranking_result_text, blob_type="json")
+        self._logger.debug(f"Before format: {ranked_text}")
+        # Parse the ranked_text.
+        formatted_results = json.loads(ranked_text)
+        response_message = Message(content={self.result_key: formatted_results})
+        return response_message
 
     async def _retrieve(self, input: Message, query_embedding: List[float]) -> Message:
         search_params = {

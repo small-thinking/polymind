@@ -64,46 +64,54 @@ class AtomTask(BaseTask):
     tool_retrieve_query_key: str = Field(default="input", description="The key to retrieve the tool.")
 
     system_prompt: str = """
-        Please help answer the below question, and put your answer into the json format.
-        The result should be put as the key "output".
+        Please read the requirement carefully, and think STEP-BY-STEP before answering the question.
 
-        You need to first identify whether this question can be answered directly, or it requires a tool.
+        Please help answer the below question, and put the apporopriate response into the json format.
 
-        If this question can be answered directly, please provide the answer in the "output" field.
-        If this question requires a tool, please provide an "action" field, and the value of the "action" field
-        should be a description on what tool is needed.
+        Leverage the tool if you are not sure.
+        First check whether you need a tool to help answer (time dependent or personal).
+        If so, put the the description of the tool in "action" field in the result json blob.
 
-        Some examples are as follows:
-        --- start of example ---
-        1. What's the height of the Eiffel Tower?
-        Answer:
-        {
-            "output": {"context": "height of Eiffel", "answer": "330 meters"}
-        }
-
-        2. What's the top 3 countries by population?
-        Answer:
-        {
-            "output": {"context": "top 3 countries by population", "answer": ["China", "India", "United States"]}
-        }
-
-        3. What is the stock price of Tesla today?
+        Examples of asking for tools with the "action" field in the result json blob:
+        Example 1: What is the stock price of Tesla today?
         Answer:
         {
             "action": "Search for the stock price of Tesla as of 2024-01-01."
         }
-        --- end of example ---
-        Please put the answer in the ```json blob```.
+
+        Example 2: What is the current to-do in my list?
+        Answer:
+        {
+            "action": "Retrieve the current to-do list from the database."
+        }
+
+        With minor chance, directly provide the answer in the "output" field,
+        if you are ABSOLUTELY SURE it is NOT hallucinating.
+
+        Examples of directly answered questions with "output" field in the result json blob:
+        Example 3: height of Eiffel
+        Answer:
+        {
+            "output": {"context": "height of Eiffel", "answer": "330 meters"}
+        }
     """
 
-    llm_tool_prompt: str = """
-        Your task is to generate the parameters for the tool to be used, according to its input spec.
+    gen_param_prompt: str = """
+        Please read the requirement carefully and think step by step.
+        Your task is to generate the parameters (key-value pairs) for the tool to be used, according to its input spec.
+        Please fill the value with your own understanding of the requirement, instead of using the examples.
+        Please set the value according to the objective:
+        ---
+        {objective}
+        {tool_description}
+        ---
+        It is expected the output is a json dict with param keys and values.
         The below is the input_spec.
-        Please generate the parameters and return in open function format.
         ---
         {tool_spec}
         ---
-        Please put the result into the ```json blob```. An example is as follows:
+        Please put the result into the ```json blob```. Example is as follows:
+        -- Example 1 --
         ```json
         {{
             "param1": "value1",
@@ -112,6 +120,11 @@ class AtomTask(BaseTask):
                 "sub_param1": "sub_value1",
                 "sub_param2": 100
             }}
+        }}
+        -- Example 2 --
+        ```json
+        {{
+            "query": "value1",
         }}
         ```
     """
@@ -147,7 +160,9 @@ class AtomTask(BaseTask):
         tool_spec = tool_instance.to_open_function_format()
         json_blob = json.dumps(tool_spec)
         # Generate the parameters for the tool.
-        tool_param_gen_prompt = self.llm_tool_prompt.format(
+        tool_param_gen_prompt = self.gen_param_prompt.format(
+            objective=objective,
+            tool_description=tool_description,
             tool_spec=json_blob,
         )
         tool_param_gen_message = Message(content={"input": tool_param_gen_prompt})
@@ -158,8 +173,13 @@ class AtomTask(BaseTask):
         tool_param_message = Message(content=tool_param_dict)
         # Invoke the tool with the parameters.
         tool_response_message = await tool_instance(tool_param_message)
-        # Pack the top 2 results into the response message.
-        response = Message(content=tool_response_message.content)
+        # Pack the results into the response message. Extract according to the tool's output spec.
+        output_spec = tool_instance.output_spec()
+        output_dict = {}
+        for param in output_spec:
+            output_dict[param.name] = tool_response_message.content.get(param.name, "")
+        # Put the results into the "output" field.
+        response = Message(content={"output": json.dumps(output_dict)})
         return response
 
     async def _execute(self, input: Message) -> Message:
@@ -204,7 +224,7 @@ class AtomTask(BaseTask):
             return response
         else:
             # Find the tool to answer the question.
-            self._logger.info("Use the tool to answer the question.")
+            self._logger.tool_log("Use the tool to answer the question.")
             tool_response = await self._use_tool(objective=self.task_name, tool_description=answer_blob["action"])
             return tool_response
 

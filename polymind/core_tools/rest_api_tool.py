@@ -2,10 +2,13 @@
 
 """
 
-from typing import List
+import os
+from typing import Dict, List
 
 import aiohttp
+from pydantic import Field
 
+from polymind.core.logger import Logger
 from polymind.core.message import Message
 from polymind.core.tool import BaseTool, Param
 
@@ -18,6 +21,14 @@ class RestAPITool(BaseTool):
         "This tool can be used to call any HTTP service.",
         "This tool can be used to call any web API.",
     ]
+
+    param_spec: Dict[str, str] = Field(
+        {}, description="The parameters spec to use the Restful API. List of param names and types."
+    )
+
+    def __init__(self, param_spec: Dict[str, str] = None):
+        super().__init__()
+        self.param_spec = param_spec or {}
 
     def input_spec(self) -> List[Param]:
         return [
@@ -43,18 +54,9 @@ class RestAPITool(BaseTool):
                 example='{"Content-Type": "application/json"}',
             ),
             Param(
-                name="body",
-                type="str",
-                required=False,
-                description="""The body of the request for POST/PUT methods.
-                Can be a dictionary for a string for form-encoded data.
-                """,
-                example="key=value&key2=value2",
-            ),
-            Param(
                 name="params",
                 type="Dict[str, str]",
-                required=False,
+                required=True,
                 description="URL query parameters.",
                 example='{"query": "value"}',
             ),
@@ -78,12 +80,36 @@ class RestAPITool(BaseTool):
             ),
         ]
 
+    def _construct_param(self, input: Message) -> Dict[str, str]:
+        """Construct the parameters for the request. Add the remaining fields from the input to the params."""
+        params = input.get("params", {})
+        for key, value in input.content.items():
+            if key not in ["url", "method", "headers", "body", "params"]:
+                params[key] = input.get(key)
+        # Validate that all required fields are present
+        for key in self.param_spec.keys():
+            if key not in params:
+                raise ValueError(f"Missing required field: {key}")
+        # Convert all booleans to str
+        for key, value in params.items():
+            if isinstance(value, bool):
+                params[key] = str(value)
+        return params
+
+    def _insert_default_params(self, input: Message) -> None:
+        """Insert default parameters to the input message."""
+        pass
+
+    def _post_process_response(self, response: Message) -> Message:
+        """Post-process the response before returning it."""
+        return response
+
     async def _execute(self, input: Message) -> Message:
+        self._insert_default_params(input)
         url = input.get("url", "")
         method = input.get("method", "GET").upper()
         headers = input.get("headers", {})
-        body = input.get("body", {})
-        params = input.get("params", {})
+        params = self._construct_param(input=input)
 
         # Determine if we need to send the request body as JSON or as form data
         if "application/json" in headers.values():
@@ -96,9 +122,7 @@ class RestAPITool(BaseTool):
                 "method": method,
                 "url": url,
                 "headers": headers,
-                "params": params,
-                "json": body if send_json else None,
-                "data": body if not send_json else None,
+                "json": params if send_json else None,
             }
             async with session.request(**request_args) as response:
                 status_code = response.status
@@ -107,4 +131,55 @@ class RestAPITool(BaseTool):
                 except Exception:
                     response_data = await response.text()
 
-                return Message(content={"status_code": status_code, "response": response_data})
+                response_message = Message(content={"status_code": status_code, "response": response_data})
+                return self._post_process_response(response_message)
+
+
+class TavilyRestAPITool(RestAPITool):
+    """Call the Tavily API to search for answers to questions."""
+
+    tool_name: str = "tavily-rest-api-tool"
+    descriptions: List[str] = [
+        "Search engine to search for external information.",
+        "Search for information on the internet for timely information.",
+        "External search engine to search for public information.",
+    ]
+
+    def __init__(self):
+        param_spec = {
+            "api_key": "str",
+            "query": "str",
+            "max_results": "int",
+        }
+        super().__init__(param_spec=param_spec)
+        self._logger = Logger(__file__)
+
+    def input_spec(self) -> List[Param]:
+        return [
+            Param(
+                name="query",
+                type="str",
+                required=True,
+                description="The question to search for.",
+                example="The search keywords.",
+            ),
+        ]
+
+    def _insert_default_params(self, input: Message) -> None:
+        input.set("include_answer", True)
+        input.set("url", "https://api.tavily.com/search")
+        input.set("headers", {"Content-Type": "application/json"})
+        input.set("method", "POST")
+        input.set("api_key", os.environ.get("TAVILY_API_KEY"))
+        input.set("max_results", 3)
+
+    def _post_process_response(self, response: Message) -> Message:
+        """Only return the answer in the field "output"."""
+        status_code = response.get("status_code")
+        if status_code != 200:
+            self._logger.error(f"Received status code {status_code} from Tavily API.")
+            return response
+        else:
+            answer = response.get("response", {}).get("answer", "")
+            response_message = Message(content={"status_code": status_code, "output": answer})
+            return response_message
