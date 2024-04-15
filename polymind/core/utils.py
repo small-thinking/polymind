@@ -41,6 +41,19 @@ def json_text_to_tool_param(json_text: str, tool: BaseTool) -> Dict[str, Any]:
     tool_param_dict = json.loads(tool_param)
     input_spec: List[Param] = tool.input_spec()
 
+    def _convert_value(value: Any, target_type: type) -> Any:
+        """Convert the value to the target type."""
+        if target_type == int:
+            return int(value)
+        elif target_type == float:
+            return float(value)
+        elif target_type == bool:
+            return bool(value)
+        elif target_type == str:
+            return str(value)
+        else:
+            return value
+
     # Convert the string to the correct type according to the input_spec
     tool_param_dict_typed = {}
     for param in input_spec:
@@ -53,16 +66,16 @@ def json_text_to_tool_param(json_text: str, tool: BaseTool) -> Dict[str, Any]:
                     if isinstance(param_value, str) or not isinstance(param_value, list):
                         raise ValueError(f"The field '{param_name}' must be a list, but got '{param_value}'.")
                     element_type = get_args(expected_param_type)[0]
-                    tool_param_dict_typed[param_name] = [convert_value(item, element_type) for item in param_value]
+                    tool_param_dict_typed[param_name] = [_convert_value(item, element_type) for item in param_value]
                 elif get_origin(expected_param_type) is dict:
                     key_type, value_type = get_args(expected_param_type)
                     if not isinstance(param_value, dict):
                         raise ValueError(f"The field '{param_name}' must be a dictionary, but got '{param_value}'.")
                     tool_param_dict_typed[param_name] = {
-                        convert_value(k, key_type): convert_value(v, value_type) for k, v in param_value.items()
+                        _convert_value(k, key_type): _convert_value(v, value_type) for k, v in param_value.items()
                     }
                 else:
-                    tool_param_dict_typed[param_name] = convert_value(param_value, expected_param_type)
+                    tool_param_dict_typed[param_name] = _convert_value(param_value, expected_param_type)
             except (ValueError, TypeError) as e:
                 raise ValueError(
                     f"{tool.tool_name}: The field '{param_name}' must be of type '{param.type}', "
@@ -74,17 +87,3 @@ def json_text_to_tool_param(json_text: str, tool: BaseTool) -> Dict[str, Any]:
             )
 
     return tool_param_dict_typed
-
-
-def convert_value(value: Any, target_type: type) -> Any:
-    """Convert the value to the target type."""
-    if target_type == int:
-        return int(value)
-    elif target_type == float:
-        return float(value)
-    elif target_type == bool:
-        return bool(value)
-    elif target_type == str:
-        return str(value)
-    else:
-        return value
