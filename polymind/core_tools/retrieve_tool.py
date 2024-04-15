@@ -197,9 +197,13 @@ class ToolRetriever(RetrieveTool):
         for hits in search_results:
             for hit in hits:
                 result = {}
+                result["distance"] = round(hit["distance"], 3)
                 for key in self.fields_to_retrieve:
                     result[key] = hit.get("entity").get(key)
                 results.append(result)
+        # Sort by distance in ascending order.
+        results = sorted(results, key=lambda x: x["distance"])
+        self._logger.debug(f"Retrieved tools: {results}")
         response_message = Message(
             content={
                 self.result_key: results,
@@ -218,7 +222,6 @@ class ToolRetriever(RetrieveTool):
         ranking_prompt = self.refine_retrieval_prompt_template.format(
             query=input.content.get(self.query_key), candidates=candidates
         )
-        self._logger.debug(f"Before refine: {candidates}")
         ranking_result_message = await self._llm_tool(Message(content={"input": ranking_prompt}))
         ranking_result_text = ranking_result_message.content.get("output", "")
         ranked_text = extract_content_from_blob(text=ranking_result_text, blob_type="json")

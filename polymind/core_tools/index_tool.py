@@ -5,6 +5,7 @@ from typing import Dict, List
 from pydantic import Field
 from pymilvus import MilvusClient
 
+from polymind.core.logger import Logger
 from polymind.core.message import Message
 from polymind.core.tool import BaseTool, Embedder, Param
 from polymind.core_tools.llm_tool import OpenAIEmbeddingTool
@@ -184,6 +185,7 @@ class ToolIndexer(IndexTool):
     recreate_collections: bool = Field(default=True, description="Whether to recreate the collections.")
 
     def _set_client(self):
+        self._logger = Logger(__file__)
         host = os.environ.get("MILVUS_HOST", "localhost")
         port = os.environ.get("MILVUS_PORT", 19530)
         self._client = MilvusClient(uri=f"http://{host}:{port}")
@@ -234,7 +236,11 @@ class ToolIndexer(IndexTool):
                 embedding = embeddings[0]
                 row = {"vector": embedding, "tool_name": tool_name}
                 for key, value in item.items():
-                    row[key] = value
+                    # Index one description per row.
+                    if "descriptions" in key_to_index and key == "descriptions":
+                        row[key] = description
+                    else:
+                        row[key] = value
                 rows.append(row)
 
         if collection_name == self.collection_name:
