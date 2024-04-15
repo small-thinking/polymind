@@ -33,6 +33,8 @@ class OpenAIChatTool(LLMTool):
         "This tool can be used to breakdown the problem into smaller parts and solve them.",
         "This tool can be used to generate the response from the chat.",
         "This tool can be used to generate the code of new tools.",
+        "This tool can do simple calculation.",
+        "Simple calculator that does basic arithmetic calculation.",
     ]
     client: AsyncOpenAI = Field(default=None)
     llm_name: str = Field(default="gpt-3.5-turbo")

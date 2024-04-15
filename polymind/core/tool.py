@@ -497,7 +497,7 @@ class RetrieveTool(BaseTool, ABC):
     query_key: str = Field(default="input", description="The key to retrieve the query from the input message.")
     result_key: str = Field(default="results", description="The key to store the results in the output message.")
     embedder: Embedder = Field(description="The embedder to generate the embedding for the descriptions.")
-    top_k: int = Field(default=3, description="The number of top results to retrieve.")
+    top_k: int = Field(default=5, description="The number of top results to retrieve.")
     enable_ranking: bool = Field(default=False, description="Enable ranking for the retrieved contents.")
 
     model_config = {
@@ -570,12 +570,12 @@ class RetrieveTool(BaseTool, ABC):
         pass
 
     @abstractmethod
-    async def _ranking(self, input: Message, response: Message) -> Message:
-        """Rank the retrieved results based on the query.
+    async def _refine(self, input: Message, response: Message) -> Message:
+        """Refine the results based on the retrieved tools and the input.
 
         Args:
-            input (Message): The input message containing the query.
-            response (Message): The message containing the retrieved results.
+            input (Message): The input message.
+            response (Message): The response message that includes the retrieved tools.
 
         Return:
             Message: The message containing the ranked results. The format should be the same as the input message.
@@ -600,5 +600,5 @@ class RetrieveTool(BaseTool, ABC):
         # Retrieve the information based on the query.
         response_message = await self._retrieve(input=input, query_embedding=embedding_message.content["embeddings"])
         if self.enable_ranking:  # Rank the retrieved results based on the query.
-            response_message = await self._ranking(input=input, response=response_message)
+            response_message = await self._refine(input=input, response=response_message)
         return response_message

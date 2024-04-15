@@ -130,14 +130,15 @@ class ChainOfTasks(ThoughtProcess):
         """Construct the tasks from the metadata."""
         tasks = []
         for idx, task_meta in enumerate(tasks_meta):
+            task_id = idx + 1
             task = AtomTask(
                 llm_tool=self.reasoner,
                 tool_manager=self._tool_manager,
                 tool_retriever=self._tool_retriever,
-                task_name=task_meta["objective"],
+                task_name=f"Task {task_id}: {task_meta['objective']}",
             )
             tasks.append(task)
-            self._logger.task_log(f"Task {idx + 1}: {task_meta['objective']} constructed.")
+            self._logger.task_log(f"Task {task_id}: {task_meta['objective']} constructed.")
         return SequentialTask(tasks=tasks)
 
     async def _execute(self, agent: Agent, input: Message) -> Message:

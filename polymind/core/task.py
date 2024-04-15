@@ -152,8 +152,11 @@ class AtomTask(BaseTask):
         tool_retrieve_message = Message(content={self.tool_retrieve_query_key: tool_description, "top_k": 1})
         tool_retrieve_result_message = await self._tool_retriever(tool_retrieve_message)
         self._logger.debug(f"Tool retrieve result: {tool_retrieve_result_message.content}")
-        tool_name = tool_retrieve_result_message.content["results"][0]["tool_name"]
-        self._logger.info(f"Retrieve the tool: [{tool_name}]")
+        tool_name = tool_retrieve_result_message.content["results"][0]
+        self._logger.task_log(
+            f"Decide to use the tool: [{tool_name}] "
+            f"for the objective [{objective}] and tool description [{tool_description}]."
+        )
         tool_instance = self._tool_manager.get_tool(tool_name)
         if not tool_instance:
             raise ValueError(f"Cannot find the tool: [{tool_name}] from the tool manager.")
@@ -191,7 +194,7 @@ class AtomTask(BaseTask):
         Returns:
             Message: The result of the task carried in a message.
         """
-        # Task objective should be part of the input.
+        # Task objective should be part of the task name.
         input_field = str(input.content.get("input", ""))
         input.content[
             "input"
@@ -201,6 +204,7 @@ class AtomTask(BaseTask):
             {input_field}
             Objective: {self.task_name}
         """
+        self._logger.task_log(f"Task {self.task_name}: Context: {self.task_context}")
         prompt = input.content["input"]
         enhanced_prompt = f"""
             {self.system_prompt}
@@ -225,8 +229,9 @@ class AtomTask(BaseTask):
         else:
             # Find the tool to answer the question.
             self._logger.tool_log("Use the tool to answer the question.")
-            tool_response = await self._use_tool(objective=self.task_name, tool_description=answer_blob["action"])
-            return tool_response
+            response = await self._use_tool(objective=self.task_name, tool_description=answer_blob["action"])
+        self._logger.task_log(f"Output of task {self.task_name}: {response.content}")
+        return response
 
 
 class CompositeTask(BaseTask, ABC):
