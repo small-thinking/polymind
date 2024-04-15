@@ -129,6 +129,43 @@ class AtomTask(BaseTask):
         ```
     """
 
+    reformat_text_prompt: str = """
+        Sometimes the text may contains the json blob or other metadata that is not needed.
+        Please reformat the text by following the below rules:
+        1. Remove keys in the text if it looks like a json blob.
+        2. Remove excessive escape characters, such as '\n', '\t', etc.
+
+        Example inputs:
+        1.
+        ---
+        '{{"output": "I\'m unable to provide real-time data."}}'
+        ---
+        2.
+        ---
+        '{{"output": "\n\n This is a text with many tabs and lines\n\t\t\t\n\n."}}'
+        ---
+        Corresponding outputs:
+        1.
+        ```
+        {{
+            "output": "I'm unable to provide real-time data."
+        }}
+        ```
+        2.
+        ```
+        {{
+            "output": "This is a text with many tabs and lines."
+        }}
+        ```
+
+        The real input is as below:
+        ---
+        {input}
+        ---
+
+        Please put the result into the ```json blob```.
+    """
+
     def __init__(self, tool_manager: ToolManager, tool_retriever: RetrieveTool, **kwargs):
         """Initializes an AtomTask object.
 
@@ -182,8 +219,34 @@ class AtomTask(BaseTask):
         for param in output_spec:
             output_dict[param.name] = tool_response_message.content.get(param.name, "")
         # Put the results into the "output" field.
-        response = Message(content={"output": json.dumps(output_dict)})
+        reformatted_text = await self._reformat_text(json.dumps(output_dict))
+        response = Message(content={"output": reformatted_text})
         return response
+
+    async def _reformat_text(self, text: str) -> str:
+        """Reformat the text by removing unnecessary metdata from the text.
+
+        Args:
+            text (str): The text to be reformatted.
+
+        Returns:
+            str: The reformatted text.
+        """
+        reformat_text_prompt = self.reformat_text_prompt.format(input=text)
+        self._logger.debug(f"Before reformating text: {text}")
+        llm_response = await self.llm_tool(Message(content={"input": reformat_text_prompt}))
+        content = llm_response.content["output"]
+        # Extract the json from the ```json blob```.
+        if "```" in content:
+            texts = re.findall(r"```(.*?)```", content, re.DOTALL)
+            if not texts:
+                raise ValueError("Cannot find the text in the response.")
+            content = texts[0]
+        # Parse the json text.
+        json_blob = json.loads(content)
+        content = json_blob.get("output", "")
+        self._logger.debug(f"After reformating text response: [{content}]")
+        return content
 
     async def _execute(self, input: Message) -> Message:
         """Execute the task and return the result.
@@ -224,7 +287,8 @@ class AtomTask(BaseTask):
         answer_blob = json.loads(content)
         # Directly answer the question.
         if "output" in answer_blob:
-            response = Message(content={"output": answer_blob["output"]})
+            reformatted_text = await self._reformat_text(answer_blob["output"])
+            response = Message(content={"output": reformatted_text})
             return response
         else:
             # Find the tool to answer the question.
