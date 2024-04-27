@@ -4,13 +4,16 @@
 
 import json
 import os
+import re
+import textwrap
 from typing import List
+from unittest.mock import AsyncMock
 
 import pytest
 from pydantic import ValidationError
 
 from polymind.core.message import Message
-from polymind.core.tool import BaseTool, Param, ToolManager
+from polymind.core.tool import BaseTool, CodeGenerationTool, Param, ToolManager
 
 
 class TestParam:
@@ -478,3 +481,135 @@ class TestToolManager:
         response = await manager.invoke_tool("test_tool", input=params)
         assert response.get("result") == "tset", "The result should be the reverse of the input query"
         assert response.get("result2") == "olleh", "The result should be the reverse of the input query2"
+
+
+class TestCodeGenerationTool:
+    @pytest.fixture
+    def llm_tool_mock(self):
+        return AsyncMock()
+
+    @pytest.fixture
+    def code_gen_tool(self, llm_tool_mock):
+        return CodeGenerationTool(llm_tool=llm_tool_mock)
+
+    # @pytest.mark.asyncio
+    # async def test_execute_successful(self, code_gen_tool, llm_tool_mock):
+    #     # Setup mock response
+    #     llm_tool_mock.return_value = AsyncMock(
+    #         content={
+    #             "output": """
+    #             ```python
+    #             output = {"result": 42}
+    #             ```
+    #             """
+    #         }
+    #     )
+    #     expected_code = 'output = {"result": 42}'
+    #     expected_output = '{"result": 42}'
+    #     input_message = Message(content={"input": "Sum two numbers"})
+
+    #     # Execute the test
+    #     result = await code_gen_tool(input_message)
+    #     actual_output = result.content["output"]
+
+    #     assert result.content["code"] == expected_code
+    # assert json.loads(actual_output) == json.loads(expected_output), actual_output
+
+    @pytest.mark.asyncio
+    async def test_execute_failure_max_attempts(self, code_gen_tool, llm_tool_mock):
+        # Simulate failures
+        llm_tool_mock.side_effect = [AsyncMock(side_effect=Exception("Error")) for _ in range(3)]
+        input_message = Message(content={"input": "Sum two numbers"})
+
+        with pytest.raises(Exception):
+            await code_gen_tool(input_message)
+
+    @pytest.mark.asyncio
+    async def test_code_gen_success(self, code_gen_tool, llm_tool_mock):
+        # Setup mock response
+        llm_tool_mock.return_value = AsyncMock(
+            content={
+                "output": """
+                ```python
+                a = 10
+                b = 32
+                def total(a, b):
+                    return a + b
+                output = {"result": total(a, b)}
+                ```
+                """
+            }
+        )
+        requirement = "Sum two numbers"
+        previous_errors = []
+
+        code = await code_gen_tool._code_gen(requirement=requirement, previous_errors=previous_errors)
+        expected_code = """
+            a = 10
+            b = 32
+            def total(a, b):
+                return a + b
+            output = {"result": total(a, b)}
+        """
+        expected_code = re.sub("\s+", "", expected_code)
+        assert re.sub("\s+", "", code) == expected_code
+
+    @pytest.mark.asyncio
+    async def test_code_gen_failure_no_code(self, code_gen_tool, llm_tool_mock):
+        # Setup mock response
+        llm_tool_mock.return_value = AsyncMock(content={"output": ""})
+        requirement = "Sum two numbers"
+        previous_errors = []
+
+        with pytest.raises(ValueError):
+            await code_gen_tool._code_gen(requirement, previous_errors)
+
+    def test_extract_required_packages(self, code_gen_tool):
+        code = textwrap.dedent(
+            """
+            import numpy
+            import pandas as pd
+            import matplotlib.pyplot as plt
+            import yfinance as yf
+            from sklearn.linear_model import LinearRegression
+            """
+        )
+        expected_packages = set(["numpy", "pandas", "matplotlib", "yfinance", "sklearn"])
+        packages = code_gen_tool._extract_required_packages(code)
+        assert set(packages) == expected_packages
+
+    @pytest.mark.asyncio
+    async def test_code_run_valid_python(self, code_gen_tool):
+        code = 'output = {"result": 100, "price": 200, "name": "test", "ids": [1, 2, 3]}'
+        result = await code_gen_tool._code_run(code)
+        assert result == {"result": 100, "price": 200, "name": "test", "ids": [1, 2, 3]}
+
+    @pytest.mark.asyncio
+    async def test_code_run_invalid_python(self, code_gen_tool):
+        code = "for i in range(10 print(i)"
+        with pytest.raises(Exception):
+            await code_gen_tool._code_run(code)
+
+    @pytest.mark.asyncio
+    async def test_output_parse_success(self, code_gen_tool, llm_tool_mock):
+        # Setup mock response
+        llm_tool_mock.return_value = AsyncMock(
+            content={"output": json.dumps({"status": "success", "output": '{"result": 42}'})}
+        )
+        requirement = "Sum two numbers"
+        output = '{"result": 42}'
+
+        parsed_output = await code_gen_tool._output_parse(requirement=requirement, output=output)
+        assert json.loads(parsed_output) == output, parsed_output
+
+    @pytest.mark.asyncio
+    async def test_output_parse_failure(self, code_gen_tool, llm_tool_mock):
+        # Setup mock response
+        llm_tool_mock.return_value = AsyncMock(
+            content={"output": json.dumps({"status": "failure", "reason": "Error: Invalid input"})}
+        )
+        requirement = "Sum two numbers"
+        output = {"result": 42}
+
+        with pytest.raises(ValueError):
+            await code_gen_tool._output_parse(requirement=requirement, output=output)
