@@ -769,6 +769,25 @@ files = [
 ]
 
 [[package]]
+name = "groq"
+version = "0.5.0"
+description = "The official Python library for the groq API"
+optional = false
+python-versions = ">=3.7"
+files = [
+    {file = "groq-0.5.0-py3-none-any.whl", hash = "sha256:a7e6be1118bcdfea3ed071ec00f505a34d4e6ec28c435adb5a5afd33545683a1"},
+    {file = "groq-0.5.0.tar.gz", hash = "sha256:d476cdc3383b45d2a4dc1876142a9542e663ea1029f9e07a05de24f895cae48c"},
+]
+
+[package.dependencies]
+anyio = ">=3.5.0,<5"
+distro = ">=1.7.0,<2"
+httpx = ">=0.23.0,<1"
+pydantic = ">=1.9.0,<3"
+sniffio = "*"
+typing-extensions = ">=4.7,<5"
+
+[[package]]
 name = "grpcio"
 version = "1.60.0"
 description = "HTTP/2-based RPC framework"
@@ -2306,4 +2325,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = ">=3.9, <3.13"
-content-hash = "38b2aed584b7c469bd2c2c97750d464e847b07b0b2f8ab47b30e9ee0784541d0"
+content-hash = "e26592135943aa507705f3dd1047cd3f8e5079fce6bac75aae54f7067d036250"

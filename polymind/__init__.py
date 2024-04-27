@@ -9,4 +9,4 @@ from .core_tools.index_tool import KnowledgeIndexTool, ToolIndexer
 from .core.logger import Logger
 
 # Expose the tools
-from .core_tools.llm_tool import LLMTool, OpenAIChatTool, OpenAIEmbeddingTool
+from .core_tools.llm_tool import LLMTool, OpenAIChatTool, OpenAIEmbeddingTool, OpenAICompatibleLLMTool
