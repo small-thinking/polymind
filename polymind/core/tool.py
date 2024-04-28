@@ -5,6 +5,7 @@ import os
 import re
 import subprocess
 import sys
+import textwrap
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, Sequence
 from typing import Any, Dict, List, Union, get_origin
@@ -309,12 +310,12 @@ class ToolManager:
         """Load all Python files as modules from the given directory."""
         for filename in os.listdir(directory_path):
             if filename.endswith(".py") and not filename.startswith("__"):
-                self._logger.debug(f"Loading tool from {filename}")
                 file_path = os.path.join(directory_path, filename)
                 self.load_tool_from_file(file_path)
 
     def load_tool_from_file(self, file_path):
         """Dynamically import a Python file and load its tools."""
+        self._logger.debug(f"Loading tool from {file_path}")
         module_name = os.path.splitext(os.path.basename(file_path))[0]
         spec = importlib.util.spec_from_file_location(module_name, file_path)
         module = importlib.util.module_from_spec(spec)
@@ -654,18 +655,17 @@ class RetrieveTool(BaseTool, ABC):
         return response_message
 
 
-class CodeGenerationTool(BaseTool):
+class CodeGenerationTool(BaseTool, ABC):
     """A tool that can generate code based on user requirements and execute it."""
 
     tool_name: str = Field(default="code_generation_tool", description="The name of the tool.")
-    llm_tool: LLMTool = Field(default=None, description="The language model tool to generate the code.")
     max_attempts: int = Field(default=3, description="The maximum number of attempts to generate the code.")
     descriptions: List[str] = Field(
         default=[
-            "This tool can generate code based on user requirements and then execute it to fulfill the requirement.",
             "The tool will generate the code to solve the problem based on the requirement.",
-            "After generating the code, the tool can execute it and provide the output.",
             "This tool can use libraries like matplotlib, pandas, yfinance, and numpy to solve problems.",
+            "Help program to get the finance data like the stock price or currency exchange rate.",
+            "Generate the code to draw the charts based on the requirement and input data.",
         ],
         description="The descriptions of the tool.",
     )
@@ -687,6 +687,11 @@ class CodeGenerationTool(BaseTool):
         plt.savefig(filepath)
         output = {{"filepath": filepath}}
         ```
+
+        Some tips:
+        1. If the requirement is about drawing a chart, you can use matplotlib to draw the chart.
+        2. If the requirement is about retrieve finance data, you can use yfinance to get the stock price.
+        3. If the requirement is about mathematical calculation, you can generate corresponding code or using numpy.
 
         The below is the actual user requirement:
         ------
@@ -721,21 +726,27 @@ class CodeGenerationTool(BaseTool):
         {requirement}
         ------
 
-        The output that is a string representation of Dict[str, Any]:
+        The output of the generated code that output the results:
         ------
         {output}
         ------
     """
 
-    def __init__(self, llm_tool: LLMTool, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.llm_tool = llm_tool
         self._logger = Logger(__file__)
+        self._set_llm_client()
+        if getattr(self, "_llm_tool", None) is None:
+            raise ValueError("_llm_tool has to be initialized in _set_llm_client().")
+
+    @abstractmethod
+    def _set_llm_client(self):
+        pass
 
     def input_spec(self) -> List[Param]:
         return [
             Param(
-                name="input",
+                name="code_gen_requirement",
                 type="str",
                 required=True,
                 description="A natural language description of the problem or requirement.",
@@ -761,30 +772,33 @@ class CodeGenerationTool(BaseTool):
 
     async def _execute(self, input: Message) -> Message:
         previous_errors = []
-        requirement = input.content["input"]
+        requirement = input.content["code_gen_requirement"]
         attempts = 0
         while attempts < self.max_attempts:
             code = await self._code_gen(requirement=requirement, previous_errors=previous_errors)
             try:
-                output_dict: Dict[str, Any] = await self._code_run(code)
-                output = await self._output_parse(requirement=requirement, output=output_dict)
-                return Message(content={"code": code, "output": output})
-            except ValueError as e:
-                self._logger.warning(f"Failed to parse output:\n{output_dict}\nError: {e}. Retrying...")
-                previous_errors.append(str(e))
-                attempts += 1
+                output_dict_str: str = await self._code_run(code)
             except Exception as e:
                 self._logger.warning(f"Failed to execute code: {e}. Retrying...")
                 previous_errors.append(str(e))
                 attempts += 1
+            try:
+                self._logger.debug(f"Start to parse the output...\n{output_dict_str}")
+                output = await self._output_parse(requirement=requirement, output=output_dict_str)
+                return Message(content={"code": code, "output": output})
+            except ValueError as e:
+                self._logger.warning(f"Failed to parse output:\n{output_dict_str}\nError: {e}. Retrying...")
+                previous_errors.append(str(e))
+                attempts += 1
+
         raise ValueError(f"Failed to generate code after {self.max_attempts} attempts.")
 
     async def _code_gen(self, requirement: str, previous_errors: List[str]) -> str:
         previous_error = "\n".join(previous_errors)
         prompt = self.codegen_prompt_template.format(user_requirement=requirement, previous_error=previous_error)
         input_message = Message(content={"input": prompt})
-        response_message = await self.llm_tool(input=input_message)
-        generated_text = response_message.content.get("output", "")
+        response_message = await self._llm_tool(input=input_message)
+        generated_text = textwrap.dedent(response_message.content.get("output", ""))
         code = ""
         code_block = re.search(r"```python(.*?)```", generated_text, re.DOTALL)
         if code_block:
@@ -800,9 +814,11 @@ class CodeGenerationTool(BaseTool):
         packages = {match[0] or match[1] for match in matches}
         return list(packages)
 
-    async def _code_run(self, code: str) -> Dict[str, Any]:
+    async def _code_run(self, code: str) -> str:
         # Ensure all required packages are installed before executing the code
         packages = self._extract_required_packages(code)
+        self._logger.debug(f"Code content:\n{code}")
+        self._logger.debug(f"Required packages: {packages}")
         # Install the required packages if they are not installed
         for package in packages:
             try:
@@ -813,21 +829,22 @@ class CodeGenerationTool(BaseTool):
         local = {"output": {}}
         exec(code, globals(), local)
         output = local.get("output", {})
-        return output
+        output_json_str = json.dumps(output, indent=4)
+        return output_json_str
 
-    async def _output_parse(self, requirement: str, output: Dict[str, Any]) -> str:
+    async def _output_parse(self, requirement: str, output: str) -> str:
         """Use LLM to parse the output based on the requirement.
 
         Args:
             requirement (str): The user requirement.
-            output (Dict[str, Any]): The output from the code execution.
+            output (str): The output from the code execution.
 
         Returns:
             str: The parsed output. It should be a string representation of Dict[str, Any].
         """
-        prompt = self.output_extract_template.format(requirement=requirement, output=json.dumps(output, indent=4))
+        prompt = self.output_extract_template.format(requirement=requirement, output=output)
         input_message = Message(content={"input": prompt})
-        response_message = await self.llm_tool(input=input_message)
+        response_message = await self._llm_tool(input=input_message)
         parsed_output_json_str = response_message.content.get("output", "")
         parsed_output_json = json.loads(parsed_output_json_str)
         if parsed_output_json["status"] != "success":

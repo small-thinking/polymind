@@ -11,7 +11,8 @@ from pydantic import Field
 
 from polymind.core.logger import Logger
 from polymind.core.message import Message
-from polymind.core.tool import BaseTool, Embedder, LLMTool, Param
+from polymind.core.tool import (BaseTool, CodeGenerationTool, Embedder,
+                                LLMTool, Param)
 from polymind.core_tools.rest_api_tool import RestAPITool
 
 
@@ -220,3 +221,12 @@ class OpenAIEmbeddingTool(Embedder):
         embedding_list = [entry.get("embedding", []) for entry in response.get("data", [])]
         embeddings: List[List[float]] = [embedding[: self.embed_dim] for embedding in embedding_list]
         return embeddings
+
+
+class OpenAICodeGenerationTool(CodeGenerationTool):
+    """Use OpenAI to generate code snippets based on the input prompt."""
+
+    tool_name: str = "open-ai-code-generation"
+
+    def _set_llm_client(self):
+        self._llm_tool = OpenAIChatTool(model_name="gpt-4-turbo")
