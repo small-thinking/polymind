@@ -163,6 +163,7 @@ class ToolRetriever(RetrieveTool):
             self._client.create_collection(self.collection_name, dimension=self.embed_dim, auto_id=True)
         self.embedder = OpenAIEmbeddingTool(embed_dim=self.embed_dim)
         self._llm_tool: LLMTool = OpenAIChatTool()
+        self.top_k = self.top_k or 3
         self._logger = Logger(__file__)
 
     def _extra_input_spec(self) -> List[Param]:

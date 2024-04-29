@@ -186,7 +186,7 @@ class AtomTask(BaseTask):
             tool_description (str): The description of the tool.
         """
         # Retrieve the tool using ToolRetriever.
-        tool_retrieve_message = Message(content={self.tool_retrieve_query_key: tool_description, "top_k": 1})
+        tool_retrieve_message = Message(content={self.tool_retrieve_query_key: tool_description, "top_k": 3})
         tool_retrieve_result_message = await self._tool_retriever(tool_retrieve_message)
         self._logger.debug(f"Tool retrieve result: {tool_retrieve_result_message.content}")
         tool_name = tool_retrieve_result_message.content["results"][0]
@@ -263,7 +263,7 @@ class AtomTask(BaseTask):
             "input"
         ] = f"""
             Context: {self.task_context}
-            Input from the previous step:
+            Input from the previous steps:
             {input_field}
             Objective: {self.task_name}
         """

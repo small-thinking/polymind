@@ -311,6 +311,7 @@ class ToolManager:
         for filename in os.listdir(directory_path):
             if filename.endswith(".py") and not filename.startswith("__"):
                 file_path = os.path.join(directory_path, filename)
+                self._logger.info(f"Loading tool from {file_path}")
                 self.load_tool_from_file(file_path)
 
     def load_tool_from_file(self, file_path):
@@ -557,6 +558,7 @@ class RetrieveTool(BaseTool, ABC):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self._logger = Logger(__file__)
         self._set_client()
 
     @abstractmethod
@@ -651,6 +653,7 @@ class RetrieveTool(BaseTool, ABC):
         # Retrieve the information based on the query.
         response_message = await self._retrieve(input=input, query_embedding=embedding_message.content["embeddings"])
         if self.enable_ranking:  # Rank the retrieved results based on the query.
+            self._logger.debug(f"Start to refine the results...\n{response_message}")
             response_message = await self._refine(input=input, response=response_message)
         return response_message
 
@@ -679,19 +682,21 @@ class CodeGenerationTool(BaseTool, ABC):
         Requirement: Write a function draw a pie chart based on the input data.
         Code:
         ```python
-        import matplotlib.pyplot as plt
+        import matplotlib.pyplot
         data = [10, 20, 30, 40]  # Data in user input
         plt.pie(data)
         # Save the plot to a file
         filepath = "pie_chart.png"
-        plt.savefig(filepath)
+        matplotlib.pyplot.savefig(filepath)
         output = {{"filepath": filepath}}
         ```
 
         Some tips:
-        1. If the requirement is about drawing a chart, you can use matplotlib to draw the chart.
-        2. If the requirement is about retrieve finance data, you can use yfinance to get the stock price.
-        3. If the requirement is about mathematical calculation, you can generate corresponding code or using numpy.
+        1. Pay special attention on the date requirement, e.g. use "datetime.datetime" to handle date.
+        2. When import the library, please use the full name of the library, e.g. "import matplotlib.pyplot".
+        3. If the requirement is about drawing a chart, you can use matplotlib to draw the chart.
+        4. If the requirement is about retrieve finance data, you can use yfinance to get the stock price.
+        5. If the requirement is about mathematical calculation, you can generate corresponding code or using numpy.
 
         The below is the actual user requirement:
         ------
@@ -780,8 +785,13 @@ class CodeGenerationTool(BaseTool, ABC):
                 output_dict_str: str = await self._code_run(code)
             except Exception as e:
                 self._logger.warning(f"Failed to execute code: {e}. Retrying...")
-                previous_errors.append(str(e))
+                error_message = {
+                    "previous_error": str(e),
+                    "previous_generated_code": code,
+                }
+                previous_errors.append(json.dumps(error_message, indent=4))
                 attempts += 1
+                continue
             try:
                 self._logger.debug(f"Start to parse the output...\n{output_dict_str}")
                 output = await self._output_parse(requirement=requirement, output=output_dict_str)
@@ -821,10 +831,7 @@ class CodeGenerationTool(BaseTool, ABC):
         self._logger.debug(f"Required packages: {packages}")
         # Install the required packages if they are not installed
         for package in packages:
-            try:
-                __import__(package)
-            except ImportError:
-                subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+            subprocess.check_call([sys.executable, "-m", "pip", "install", package])
 
         local = {"output": {}}
         exec(code, globals(), local)
