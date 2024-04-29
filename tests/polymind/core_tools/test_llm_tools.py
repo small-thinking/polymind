@@ -158,52 +158,58 @@ class TestOpenAICodeGenerationTool:
 
     @pytest.fixture
     def code_gen_tool(self, llm_tool_mock):
-        codegen_tool = OpenAICodeGenerationTool()
+        codegen_tool = OpenAICodeGenerationTool(max_attempts=1)
         codegen_tool._llm_tool = llm_tool_mock
         return codegen_tool
 
-    # @pytest.mark.asyncio
-    # async def test_execute_successful(self, code_gen_tool, llm_tool_mock):
-    #     # Setup mock responses with different outcomes for each call
-    #     llm_tool_mock.side_effect = [
-    #         AsyncMock(  # Called by code gen
-    #             content={
-    #                 "output": """
-    #                 ```python
-    #                 import yfinance as yf
-    #                 output = {"result": 42}
-    #                 ```
-    #                 """
-    #             }
-    #         ),
-    #         AsyncMock(  # Called by output parse
-    #             content={
-    #                 "output": """
-    #                 {
-    #                     "status": "success",
-    #                     "output": {"result": 42}
-    #                 }
-    #                 """
-    #             }
-    #         ),
-    #     ]
+    @pytest.mark.asyncio
+    async def test_execute_successful(self, code_gen_tool, llm_tool_mock):
+        # Setup mock responses with different outcomes for each call
+        llm_tool_mock.side_effect = [
+            AsyncMock(  # Called by code gen
+                content={
+                    "output": """
+                    ```python
+                    import yfinance as yf
+                    import json
+                    output = {"result": 42}
+                    print(json.dumps(output))
+                    ```
+                    """
+                }
+            ),
+            AsyncMock(  # Called by output parse
+                content={
+                    "output": """
+                    ```json
+                    {
+                        "status": "success",
+                        "output": {"result": 42}
+                    }
+                    ```
+                    """
+                }
+            ),
+        ]
 
-    #     # Define expected outcomes
-    #     expected_code = textwrap.dedent(
-    #         """
-    #         import yfinance as yf
-    #         output = {"result": 42}
-    #     """
-    #     ).strip()
-    #     expected_output = '{"result": 42}'
+        # Define expected outcomes
+        expected_code = textwrap.dedent(
+            """
+            import yfinance as yf
+            import json
+            output = {"result": 42}
+            print(json.dumps(output))
+        """
+        ).strip()
+        expected_output = '{"result": 42}'
 
-    #     input_message = Message(content={"code_gen_requirement": "Sum two numbers"})
+        input_message = Message(content={"code_gen_requirement": "Sum two numbers"})
 
-    #     result = await code_gen_tool(input_message)
-    #     actual_output = result.content["output"]
+        result = await code_gen_tool(input_message)
+        actual_output = result.content["output"]
 
-    #     assert textwrap.dedent(result.content["code"]).strip() == expected_code
-    #     assert json.loads(actual_output) == json.loads(expected_output)
+        assert textwrap.dedent(result.content["code"]).strip() == expected_code
+        assert json.loads(actual_output) == json.loads(expected_output)
 
     @pytest.mark.asyncio
     async def test_execute_failure_max_attempts(self, code_gen_tool, llm_tool_mock):
@@ -270,7 +276,13 @@ class TestOpenAICodeGenerationTool:
 
     @pytest.mark.asyncio
     async def test_code_run_valid_python(self, code_gen_tool):
-        code = 'output = {"result": 100, "price": 200, "name": "test", "ids": [1, 2, 3]}'
+        code = textwrap.dedent(
+            """
+            import json
+            output = {"result": 100, "price": 200, "name": "test", "ids": [1, 2, 3]}
+            print(json.dumps(output))
+        """
+        ).strip()
         result = await code_gen_tool._code_run(code)
         assert json.loads(result) == {"result": 100, "price": 200, "name": "test", "ids": [1, 2, 3]}
 
@@ -279,6 +291,38 @@ class TestOpenAICodeGenerationTool:
         code = "for i in range(10 print(i)"
         with pytest.raises(Exception):
             await code_gen_tool._code_run(code)
+
+    @pytest.mark.asyncio
+    async def test_output_parse_success(self, code_gen_tool):
+        # Expected output from the subprocess
+        mock_stdout = """
+        {
+            "status": "success",
+            "output": {
+                "result": 42
+            }
+        }
+        """
+
+        # Mock subprocess execution to return success and custom stdout
+        with patch("asyncio.create_subprocess_exec") as mock_subproc_exec:
+            # Setup mock process with desired behavior
+            mock_proc = AsyncMock()
+            mock_proc.communicate.return_value = (mock_stdout.encode(), b"")  # no stderr output
+            mock_proc.returncode = 0  # Simulate successful execution
+            mock_subproc_exec.return_value = mock_proc
+
+            requirement = "Sum two numbers"
+            code_gen_output = """
+            {
+                "result": 42
+            }
+            """
+            expected_output = {"status": "success", "output": {"result": 42}}
+
+            # This method seems to parse the output; ensure it works with mocked stdout
+            parsed_output = await code_gen_tool._code_run(code_gen_output)
+            assert json.loads(parsed_output) == expected_output
 
     @pytest.mark.asyncio
     async def test_output_parse_success(self, code_gen_tool, llm_tool_mock):

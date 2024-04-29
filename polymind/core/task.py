@@ -163,7 +163,7 @@ class AtomTask(BaseTask):
         {input}
         ---
 
-        Please put the result into the ```json blob```.
+        Please put the result into the ```json blob```, and the key should be "output".
     """
 
     def __init__(self, tool_manager: ToolManager, tool_retriever: RetrieveTool, **kwargs):

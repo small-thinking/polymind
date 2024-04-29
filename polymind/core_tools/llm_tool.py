@@ -230,7 +230,8 @@ class OpenAICodeGenerationTool(CodeGenerationTool):
     tool_name: str = "open-ai-code-generation"
 
     def _set_llm_client(self):
-        self._llm_tool = OpenAIChatTool(model_name="gpt-4-turbo")
+        model_name = os.environ.get("MODEL_NAME", "gpt-3.5-turbo")
+        self._llm_tool = OpenAIChatTool(model_name=model_name)
         # self._llm_tool = AnthropicClaudeTool()
 
 

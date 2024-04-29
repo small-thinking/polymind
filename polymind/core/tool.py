@@ -1,3 +1,4 @@
+import asyncio
 import importlib.util
 import inspect
 import json
@@ -5,6 +6,7 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
 import textwrap
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, Sequence
@@ -672,23 +674,39 @@ class CodeGenerationTool(BaseTool, ABC):
         ],
         description="The descriptions of the tool.",
     )
+    # The packages that don't need to install in the code generation tool.
+    skipped_packages: List[str] = [
+        "json",
+        "os",
+        "sys",
+        "subprocess",
+        "tempfile",
+        "inspect",
+        "importlib",
+        "re",
+        "textwrap",
+        "asyncio",
+    ]
 
     codegen_prompt_template: str = """
         You are a programmer that can generate code based on the requirement to solve the problem.
         Please generate the code in python and put it in the code block below.
         Note you would need to save the result in a Dict[str, Any] variable named 'output'.
+        And then print the jsonified dict to stdout.
 
         An example:
         Requirement: Write a function draw a pie chart based on the input data.
         Code:
         ```python
         import matplotlib.pyplot
+        import json
         data = [10, 20, 30, 40]  # Data in user input
         plt.pie(data)
         # Save the plot to a file
         filepath = "pie_chart.png"
         matplotlib.pyplot.savefig(filepath)
         output = {{"type": "chart path", "filepath": filepath}}
+        print(json.dumps(output))
         ```
 
         Some tips:
@@ -830,6 +848,7 @@ class CodeGenerationTool(BaseTool, ABC):
         if code_block:
             code = code_block.group(1).strip()
             return code
+        self._logger.error(f"Failed to generate code: {generated_text}")
         raise ValueError(f"Failed to generate code: {generated_text}")
 
     def _extract_required_packages(self, code: str) -> List[str]:
@@ -840,32 +859,81 @@ class CodeGenerationTool(BaseTool, ABC):
         packages = {match[0] or match[1] for match in matches}
         return list(packages)
 
+    # async def _code_run(self, code: str) -> str:
+    #     # Ensure all required packages are installed before executing the code
+    #     packages = self._extract_required_packages(code)
+    #     self._logger.debug(f"Code content:\n{code}")
+    #     self._logger.debug(f"Required packages: {packages}")
+    #     # Install the required packages if they are not installed
+    #     for package in packages:
+    #         subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+    #     # Add imported packages to the global namespace
+    #     global_vars = globals().copy()
+    #     for package in packages:
+    #         module = importlib.import_module(package)
+    #         global_vars.update({name: getattr(module, name) for name in dir(module)})
+
+    #     local = {"output": {}}
+    #     exec(code, global_vars, local)
+    #     output = local.get("output", {})
+    #     output_json_str = json.dumps(output, indent=4)
+    #     return output_json_str
+
+    async def _install_packages(self, packages: List[str]) -> None:
+        for package in packages:
+            if package in self.skipped_packages:
+                continue
+            try:
+                proc = await asyncio.create_subprocess_exec(
+                    sys.executable, "-m", "pip", "install", package, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+                )
+                stdout, stderr = await proc.communicate()
+                if proc.returncode != 0:
+                    self._logger.error(f"Error installing {package}: {stderr.decode()}")
+                    raise Exception(f"Error installing {package}: {stderr.decode()}")
+            except Exception as e:
+                self._logger.error(f"Failed to install package {package}: {e}")
+                raise
+
     async def _code_run(self, code: str) -> str:
-        # Ensure all required packages are installed before executing the code
         packages = self._extract_required_packages(code)
         self._logger.debug(f"Code content:\n{code}")
         self._logger.debug(f"Required packages: {packages}")
-        # Install the required packages if they are not installed
-        for package in packages:
-            subprocess.check_call([sys.executable, "-m", "pip", "install", package])
-        # Add imported packages to the global namespace
-        global_vars = globals().copy()
-        for package in packages:
-            module = importlib.import_module(package)
-            global_vars.update({name: getattr(module, name) for name in dir(module)})
 
-        local = {"output": {}}
-        exec(code, global_vars, local)
-        output = local.get("output", {})
-        output_json_str = json.dumps(output, indent=4)
-        return output_json_str
+        if packages:
+            await self._install_packages(packages)
+
+        try:
+            with tempfile.NamedTemporaryFile(mode="w+", delete=False) as temp_file:
+                temp_file.write(code)
+                temp_file.seek(0)
+                temp_file_name = temp_file.name
+
+            proc = await asyncio.create_subprocess_exec(
+                sys.executable, temp_file_name, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            )
+            stdout, stderr = await proc.communicate()
+
+            if proc.returncode != 0:
+                self._logger.error(f"Error executing code: {stderr.decode()}")
+                raise Exception(f"Error executing code: {stderr.decode()}")
+            self._logger.debug(f"stdout: [{stdout.decode()}]")
+            result = stdout.decode()  # string format of a Dict[str, Any]
+            self._logger.debug(f"Code execution result:\n[{result}]")
+            return result
+        finally:
+            try:
+                # Clean up the temporary file
+                os.unlink(temp_file_name)
+            except Exception as e:
+                self._logger.error(f"Failed to delete temporary file: {e}")
 
     async def _output_parse(self, requirement: str, output: str) -> str:
         """Use LLM to parse the output based on the requirement.
 
         Args:
             requirement (str): The user requirement.
-            output (str): The output from the code execution.
+            output (str): The output from the code execution captured from stdout. Should be parsible json text.
 
         Returns:
             str: The parsed output. It should be a string representation of Dict[str, Any].
@@ -873,12 +941,13 @@ class CodeGenerationTool(BaseTool, ABC):
         prompt = self.output_extract_template.format(requirement=requirement, output=output)
         input_message = Message(content={"input": prompt})
         response_message = await self._llm_tool(input=input_message)
-        response_blob = textwrap.dedent(response_message.content.get("output", "")).strip()
+        self._logger.debug(f"Response message:\n{response_message}")
+        response_blob = response_message.content.get("output", "")
         self._logger.debug(f"Response blob:\n{response_blob}")
         matches = re.search(r"```json(.*?)```", response_blob, re.DOTALL)
         if not matches:
             raise ValueError(f"Cannot find the parsed output in the response: {response_blob}.")
-        parsed_output_json_str = matches.group(1).strip()
+        parsed_output_json_str = textwrap.dedent(matches.group(1)).strip()
         parsed_output_json = json.loads(parsed_output_json_str)
         if parsed_output_json["status"] != "success":
             raise ValueError(f"Generated output is incorrect: {parsed_output_json['reason']}")
