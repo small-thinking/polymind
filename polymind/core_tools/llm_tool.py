@@ -12,7 +12,8 @@ from pydantic import Field
 
 from polymind.core.logger import Logger
 from polymind.core.message import Message
-from polymind.core.tool import BaseTool, CodeGenerationTool, Embedder, LLMTool, Param
+from polymind.core.tool import (BaseTool, CodeGenerationTool, Embedder,
+                                LLMTool, Param)
 from polymind.core_tools.rest_api_tool import RestAPITool
 
 
@@ -230,6 +231,7 @@ class OpenAICodeGenerationTool(CodeGenerationTool):
 
     def _set_llm_client(self):
         self._llm_tool = OpenAIChatTool(model_name="gpt-4-turbo")
+        # self._llm_tool = AnthropicClaudeTool()
 
 
 class AnthropicClaudeTool(LLMTool):
@@ -244,7 +246,7 @@ class AnthropicClaudeTool(LLMTool):
         "arbitrary_types_allowed": True,  # Allow arbitrary types
     }
     tool_name: str = "anthropic-claude"
-    model_name: str = Field(default="claude-3-sonnet-20240229", description="The name of the Claude model.")
+    model_name: str = Field(default="claude-3-opus-20240229", description="The name of the Claude model.")
     descriptions: List[str] = [
         "This tool is used to chat with Anthropic's Claude language model.",
         "This tool can be used as the orchestrator to control the conversation and problem solving.",
@@ -320,20 +322,19 @@ class AnthropicClaudeTool(LLMTool):
         """Execute the tool and return the result."""
         prompt = input.get("input", "")
         system_prompt = input.get("system_prompt", self.system_prompt)
+        prompt = f"{system_prompt}\n{prompt}"
         temperature = input.get("temperature", self.temperature)
         max_tokens = input.get("max_tokens", self.max_tokens)
         messages = [
-            {"role": "system", "content": system_prompt},
             {"role": "user", "content": prompt},
         ]
-        response = self.client.message.create(
+        response = self.client.messages.create(
             model=self.model_name,
             max_tokens=max_tokens,
             temperature=temperature,
             messages=messages,
         )
-
-        content = response.content["text"]
+        content = response.content[0].text
         self._logger.tool_log(f"[{self.tool_name}], System Prompt: [{system_prompt}]")
         self._logger.tool_log(f"[{self.tool_name}], Prompt: [{prompt}]")
         self._logger.tool_log(f"[{self.tool_name}], Response from Claude: [{content}]")
