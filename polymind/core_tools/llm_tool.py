@@ -6,12 +6,14 @@ For now, it contains two tools: OpenAIChatTool and OpenAIEmbeddingTool.
 import os
 from typing import List
 
+import anthropic
 from openai import AsyncOpenAI
 from pydantic import Field
 
 from polymind.core.logger import Logger
 from polymind.core.message import Message
-from polymind.core.tool import BaseTool, Embedder, LLMTool, Param
+from polymind.core.tool import (BaseTool, CodeGenerationTool, Embedder,
+                                LLMTool, Param)
 from polymind.core_tools.rest_api_tool import RestAPITool
 
 
@@ -220,3 +222,122 @@ class OpenAIEmbeddingTool(Embedder):
         embedding_list = [entry.get("embedding", []) for entry in response.get("data", [])]
         embeddings: List[List[float]] = [embedding[: self.embed_dim] for embedding in embedding_list]
         return embeddings
+
+
+class OpenAICodeGenerationTool(CodeGenerationTool):
+    """Use OpenAI to generate code snippets based on the input prompt."""
+
+    tool_name: str = "open-ai-code-generation"
+
+    def _set_llm_client(self):
+        model_name = os.environ.get("MODEL_NAME", "gpt-3.5-turbo")
+        self._llm_tool = OpenAIChatTool(model_name=model_name)
+        # self._llm_tool = AnthropicClaudeTool()
+
+
+class AnthropicClaudeTool(LLMTool):
+    """AnthropicClaudeTool is a bridge to Anthropic's Claude API.
+    The tool can be initialized with system_prompt, max_tokens, and temperature.
+    The input message of this tool should contain a "prompt", and optionally a "system_prompt".
+    The "system_prompt" in the input message will override the default system_prompt.
+    The tool will return a message with key "answer" with the response from the Claude API.
+    """
+
+    model_config = {
+        "arbitrary_types_allowed": True,  # Allow arbitrary types
+    }
+    tool_name: str = "anthropic-claude"
+    model_name: str = Field(default="claude-3-opus-20240229", description="The name of the Claude model.")
+    descriptions: List[str] = [
+        "This tool is used to chat with Anthropic's Claude language model.",
+        "This tool can be used as the orchestrator to control the conversation and problem solving.",
+        "This tool can be used to breakdown the problem into smaller parts and solve them.",
+        "This tool can be used to generate the response from the chat.",
+        "This tool can be used to generate the code of new tools.",
+        "This tool can do simple calculation.",
+        "Simple calculator that does basic arithmetic calculation.",
+    ]
+
+    client: anthropic.Client = Field(default=None)
+    system_prompt: str = Field(default="You are a helpful AI assistant.")
+    max_tokens: int = Field(default=4000)
+    temperature: float = Field(default=0.7)
+    stop: str = Field(default=None)
+    response_format: str = Field(default="text", description="The format of the response from the chat.")
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._logger = Logger(__file__)
+        self._set_client()
+
+    def _set_client(self):
+        """Set the client for the language model."""
+        self.client = anthropic.Anthropic()
+
+    def input_spec(self) -> List[Param]:
+        """Return the input specification of the tool."""
+        return [
+            Param(
+                name="system_prompt",
+                type="str",
+                required=False,
+                example="You are a helpful AI assistant.",
+                description="The system prompt for the chat.",
+            ),
+            Param(
+                name="input",
+                type="str",
+                required=True,
+                example="hello, how are you?",
+                description="The prompt for the chat.",
+            ),
+            Param(
+                name="max_tokens",
+                type="int",
+                required=False,
+                example="1500",
+                description="The maximum number of tokens for the chat.",
+            ),
+            Param(
+                name="temperature",
+                type="float",
+                required=False,
+                example="0.7",
+                description="The temperature for the chat.",
+            ),
+        ]
+
+    def output_spec(self) -> List[Param]:
+        """Return the output specification of the tool."""
+        return [
+            Param(
+                name="output",
+                type="str",
+                required=True,
+                example="I'm good, how are you?",
+                description="The response from the chat.",
+            ),
+        ]
+
+    async def _invoke(self, input: Message) -> Message:
+        """Execute the tool and return the result."""
+        prompt = input.get("input", "")
+        system_prompt = input.get("system_prompt", self.system_prompt)
+        prompt = f"{system_prompt}\n{prompt}"
+        temperature = input.get("temperature", self.temperature)
+        max_tokens = input.get("max_tokens", self.max_tokens)
+        messages = [
+            {"role": "user", "content": prompt},
+        ]
+        response = self.client.messages.create(
+            model=self.model_name,
+            max_tokens=max_tokens,
+            temperature=temperature,
+            messages=messages,
+        )
+        content = response.content[0].text
+        self._logger.tool_log(f"[{self.tool_name}], System Prompt: [{system_prompt}]")
+        self._logger.tool_log(f"[{self.tool_name}], Prompt: [{prompt}]")
+        self._logger.tool_log(f"[{self.tool_name}], Response from Claude: [{content}]")
+        response_message = Message(content={"output": content})
+        return response_message

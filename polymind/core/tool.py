@@ -1,3 +1,4 @@
+import asyncio
 import importlib.util
 import inspect
 import json
@@ -5,6 +6,8 @@ import os
 import re
 import subprocess
 import sys
+import tempfile
+import textwrap
 from abc import ABC, abstractmethod
 from collections.abc import Mapping, Sequence
 from typing import Any, Dict, List, Union, get_origin
@@ -309,12 +312,13 @@ class ToolManager:
         """Load all Python files as modules from the given directory."""
         for filename in os.listdir(directory_path):
             if filename.endswith(".py") and not filename.startswith("__"):
-                self._logger.debug(f"Loading tool from {filename}")
                 file_path = os.path.join(directory_path, filename)
+                self._logger.info(f"Loading tool from {file_path}")
                 self.load_tool_from_file(file_path)
 
     def load_tool_from_file(self, file_path):
         """Dynamically import a Python file and load its tools."""
+        self._logger.debug(f"Loading tool from {file_path}")
         module_name = os.path.splitext(os.path.basename(file_path))[0]
         spec = importlib.util.spec_from_file_location(module_name, file_path)
         module = importlib.util.module_from_spec(spec)
@@ -556,6 +560,7 @@ class RetrieveTool(BaseTool, ABC):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        self._logger = Logger(__file__)
         self._set_client()
 
     @abstractmethod
@@ -650,43 +655,66 @@ class RetrieveTool(BaseTool, ABC):
         # Retrieve the information based on the query.
         response_message = await self._retrieve(input=input, query_embedding=embedding_message.content["embeddings"])
         if self.enable_ranking:  # Rank the retrieved results based on the query.
+            self._logger.debug(f"Start to refine the results...\n{response_message}")
             response_message = await self._refine(input=input, response=response_message)
         return response_message
 
 
-class CodeGenerationTool(BaseTool):
+class CodeGenerationTool(BaseTool, ABC):
     """A tool that can generate code based on user requirements and execute it."""
 
     tool_name: str = Field(default="code_generation_tool", description="The name of the tool.")
-    llm_tool: LLMTool = Field(default=None, description="The language model tool to generate the code.")
     max_attempts: int = Field(default=3, description="The maximum number of attempts to generate the code.")
     descriptions: List[str] = Field(
         default=[
-            "This tool can generate code based on user requirements and then execute it to fulfill the requirement.",
             "The tool will generate the code to solve the problem based on the requirement.",
-            "After generating the code, the tool can execute it and provide the output.",
             "This tool can use libraries like matplotlib, pandas, yfinance, and numpy to solve problems.",
+            "Help program to get the finance data like the stock price or currency exchange rate.",
+            "Generate the code to draw the charts based on the requirement and input data.",
         ],
         description="The descriptions of the tool.",
     )
+    # The packages that don't need to install in the code generation tool.
+    skipped_packages: List[str] = [
+        "json",
+        "os",
+        "sys",
+        "subprocess",
+        "tempfile",
+        "inspect",
+        "importlib",
+        "re",
+        "textwrap",
+        "asyncio",
+    ]
 
     codegen_prompt_template: str = """
         You are a programmer that can generate code based on the requirement to solve the problem.
         Please generate the code in python and put it in the code block below.
         Note you would need to save the result in a Dict[str, Any] variable named 'output'.
+        And then print the jsonified dict to stdout.
 
         An example:
         Requirement: Write a function draw a pie chart based on the input data.
         Code:
         ```python
-        import matplotlib.pyplot as plt
+        import matplotlib.pyplot
+        import json
         data = [10, 20, 30, 40]  # Data in user input
         plt.pie(data)
         # Save the plot to a file
         filepath = "pie_chart.png"
-        plt.savefig(filepath)
-        output = {{"filepath": filepath}}
+        matplotlib.pyplot.savefig(filepath)
+        output = {{"type": "chart path", "filepath": filepath}}
+        print(json.dumps(output))
         ```
+
+        Some tips:
+        1. Pay special attention on the date requirement, e.g. use "datetime.datetime" to handle date.
+        2. When import the library, please use the full name of the library, e.g. "import matplotlib.pyplot".
+        3. If the requirement is about drawing a chart, you can use matplotlib to draw the chart.
+        4. If the requirement is about retrieve finance data, you can use yfinance to get the stock price.
+        5. If the requirement is about mathematical calculation, you can generate corresponding code or using numpy.
 
         The below is the actual user requirement:
         ------
@@ -700,42 +728,64 @@ class CodeGenerationTool(BaseTool):
     """
 
     output_extract_template: str = """
-        You are the checker and extract to check the output (as Dict[str, Any]) that is
+        Your work is to check and extract to check the output (Dict[str, Any] in string form) that is
         intentded to solve the problem according to the requirement.
         The output is generated by the code.
-        Please check carefully whether the result in the output really solve the problem. And always use double quotes.
+        Please check carefully whether the result in the output fulfilled the user requirement.
 
-        If the output is correct, please extract it as str and put it into a json blob:
+        If the output fulfilled the user requirement, extract it as str and put it into a json blob.
+        The examples of the json blob:
         {{
             "status": "success",
-            "output": {output}
+            "output": "..."  # The answer of the problem
         }}
-        If the output is not correct, please return a json blob with the error message:
+        If not, please return a json blob with the error message:
         {{
             "status": "error",
-            "reason": "The user asks for the stock price of APPL, but the output has no relevant information.",
+            "reason": "...",  # The reason of the error
         }}
 
-        The user requirement:
+        An example input:
+        Requirement: Find the stock price of Google on 2024-04-01.
+        The output of the generated code:
+        {{
+            "symbol": "GOOGL",
+            "price": 1000
+        }}
+        The extracted output:
+        ```json
+        {{
+            "status": "success",
+            "output": "The stock price of Google on 2024-04-01 is $1000."
+        }}
+        ```
+
+        The below is the actual user requirement:
         ------
         {requirement}
         ------
 
-        The output that is a string representation of Dict[str, Any]:
+        The actual output from the generated code:
         ------
         {output}
         ------
     """
 
-    def __init__(self, llm_tool: LLMTool, **kwargs):
+    def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        self.llm_tool = llm_tool
         self._logger = Logger(__file__)
+        self._set_llm_client()
+        if getattr(self, "_llm_tool", None) is None:
+            raise ValueError("_llm_tool has to be initialized in _set_llm_client().")
+
+    @abstractmethod
+    def _set_llm_client(self):
+        pass
 
     def input_spec(self) -> List[Param]:
         return [
             Param(
-                name="input",
+                name="code_gen_requirement",
                 type="str",
                 required=True,
                 description="A natural language description of the problem or requirement.",
@@ -761,35 +811,44 @@ class CodeGenerationTool(BaseTool):
 
     async def _execute(self, input: Message) -> Message:
         previous_errors = []
-        requirement = input.content["input"]
+        requirement = input.content["code_gen_requirement"]
         attempts = 0
         while attempts < self.max_attempts:
             code = await self._code_gen(requirement=requirement, previous_errors=previous_errors)
             try:
-                output_dict: Dict[str, Any] = await self._code_run(code)
-                output = await self._output_parse(requirement=requirement, output=output_dict)
-                return Message(content={"code": code, "output": output})
-            except ValueError as e:
-                self._logger.warning(f"Failed to parse output:\n{output_dict}\nError: {e}. Retrying...")
-                previous_errors.append(str(e))
-                attempts += 1
+                output_dict_str: str = await self._code_run(code)
             except Exception as e:
                 self._logger.warning(f"Failed to execute code: {e}. Retrying...")
+                error_message = {
+                    "previous_error": str(e),
+                    "previous_generated_code": code,
+                }
+                previous_errors.append(json.dumps(error_message, indent=4))
+                attempts += 1
+                continue
+            try:
+                self._logger.debug(f"Start to parse the output...\n{output_dict_str}")
+                output = await self._output_parse(requirement=requirement, output=output_dict_str)
+                return Message(content={"code": code, "output": output})
+            except ValueError as e:
+                self._logger.warning(f"Failed to parse output, error: {e}. Retrying...")
                 previous_errors.append(str(e))
                 attempts += 1
+
         raise ValueError(f"Failed to generate code after {self.max_attempts} attempts.")
 
     async def _code_gen(self, requirement: str, previous_errors: List[str]) -> str:
         previous_error = "\n".join(previous_errors)
         prompt = self.codegen_prompt_template.format(user_requirement=requirement, previous_error=previous_error)
         input_message = Message(content={"input": prompt})
-        response_message = await self.llm_tool(input=input_message)
-        generated_text = response_message.content.get("output", "")
+        response_message = await self._llm_tool(input=input_message)
+        generated_text = textwrap.dedent(response_message.content.get("output", ""))
         code = ""
         code_block = re.search(r"```python(.*?)```", generated_text, re.DOTALL)
         if code_block:
             code = code_block.group(1).strip()
             return code
+        self._logger.error(f"Failed to generate code: {generated_text}")
         raise ValueError(f"Failed to generate code: {generated_text}")
 
     def _extract_required_packages(self, code: str) -> List[str]:
@@ -800,35 +859,95 @@ class CodeGenerationTool(BaseTool):
         packages = {match[0] or match[1] for match in matches}
         return list(packages)
 
-    async def _code_run(self, code: str) -> Dict[str, Any]:
-        # Ensure all required packages are installed before executing the code
-        packages = self._extract_required_packages(code)
-        # Install the required packages if they are not installed
+    # async def _code_run(self, code: str) -> str:
+    #     # Ensure all required packages are installed before executing the code
+    #     packages = self._extract_required_packages(code)
+    #     self._logger.debug(f"Code content:\n{code}")
+    #     self._logger.debug(f"Required packages: {packages}")
+    #     # Install the required packages if they are not installed
+    #     for package in packages:
+    #         subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+    #     # Add imported packages to the global namespace
+    #     global_vars = globals().copy()
+    #     for package in packages:
+    #         module = importlib.import_module(package)
+    #         global_vars.update({name: getattr(module, name) for name in dir(module)})
+
+    #     local = {"output": {}}
+    #     exec(code, global_vars, local)
+    #     output = local.get("output", {})
+    #     output_json_str = json.dumps(output, indent=4)
+    #     return output_json_str
+
+    async def _install_packages(self, packages: List[str]) -> None:
         for package in packages:
+            if package in self.skipped_packages:
+                continue
             try:
-                __import__(package)
-            except ImportError:
-                subprocess.check_call([sys.executable, "-m", "pip", "install", package])
+                proc = await asyncio.create_subprocess_exec(
+                    sys.executable, "-m", "pip", "install", package, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+                )
+                stdout, stderr = await proc.communicate()
+                if proc.returncode != 0:
+                    self._logger.error(f"Error installing {package}: {stderr.decode()}")
+                    raise Exception(f"Error installing {package}: {stderr.decode()}")
+            except Exception as e:
+                self._logger.error(f"Failed to install package {package}: {e}")
+                raise
 
-        local = {"output": {}}
-        exec(code, globals(), local)
-        output = local.get("output", {})
-        return output
+    async def _code_run(self, code: str) -> str:
+        packages = self._extract_required_packages(code)
+        self._logger.debug(f"Code content:\n{code}")
+        self._logger.debug(f"Required packages: {packages}")
 
-    async def _output_parse(self, requirement: str, output: Dict[str, Any]) -> str:
+        if packages:
+            await self._install_packages(packages)
+
+        try:
+            with tempfile.NamedTemporaryFile(mode="w+", delete=False) as temp_file:
+                temp_file.write(code)
+                temp_file.seek(0)
+                temp_file_name = temp_file.name
+
+            proc = await asyncio.create_subprocess_exec(
+                sys.executable, temp_file_name, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+            )
+            stdout, stderr = await proc.communicate()
+
+            if proc.returncode != 0:
+                self._logger.error(f"Error executing code: {stderr.decode()}")
+                raise Exception(f"Error executing code: {stderr.decode()}")
+            self._logger.debug(f"stdout: [{stdout.decode()}]")
+            result = stdout.decode()  # string format of a Dict[str, Any]
+            self._logger.debug(f"Code execution result:\n[{result}]")
+            return result
+        finally:
+            try:
+                # Clean up the temporary file
+                os.unlink(temp_file_name)
+            except Exception as e:
+                self._logger.error(f"Failed to delete temporary file: {e}")
+
+    async def _output_parse(self, requirement: str, output: str) -> str:
         """Use LLM to parse the output based on the requirement.
 
         Args:
             requirement (str): The user requirement.
-            output (Dict[str, Any]): The output from the code execution.
+            output (str): The output from the code execution captured from stdout. Should be parsible json text.
 
         Returns:
             str: The parsed output. It should be a string representation of Dict[str, Any].
         """
-        prompt = self.output_extract_template.format(requirement=requirement, output=json.dumps(output, indent=4))
+        prompt = self.output_extract_template.format(requirement=requirement, output=output)
         input_message = Message(content={"input": prompt})
-        response_message = await self.llm_tool(input=input_message)
-        parsed_output_json_str = response_message.content.get("output", "")
+        response_message = await self._llm_tool(input=input_message)
+        self._logger.debug(f"Response message:\n{response_message}")
+        response_blob = response_message.content.get("output", "")
+        self._logger.debug(f"Response blob:\n{response_blob}")
+        matches = re.search(r"```json(.*?)```", response_blob, re.DOTALL)
+        if not matches:
+            raise ValueError(f"Cannot find the parsed output in the response: {response_blob}.")
+        parsed_output_json_str = textwrap.dedent(matches.group(1)).strip()
         parsed_output_json = json.loads(parsed_output_json_str)
         if parsed_output_json["status"] != "success":
             raise ValueError(f"Generated output is incorrect: {parsed_output_json['reason']}")

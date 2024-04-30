@@ -31,15 +31,13 @@ class ChainOfTasks(ThoughtProcess):
 
     problem_decomposition_prompt: str = """
         Please read the requirement carefully, and think step-by-step before answering the question.
-        Please decompose the problem into 1-5 steps, depending on the complexity of the problem.
-
-        Each of the following sub-task will use the output of the previous task as input.
-
-        Please write down your decomposition into the json blob.
-        For each step, please give it an "objective", "input" and "output".
-        FOr the objective, please make it less ambiguous and more specific.
-        And make it to explain how to use the input.
-        For input and output, please use declarative name and please describe the type as well.
+        Follow the below rules:
+        1. Please decompose the problem into 1-5 steps, depending on the complexity of the problem.
+            Each of the following sub-task will use the output of the previous task as input.
+        2. For each step, please give it an "objective", "input" and "output".
+            Objectives: Make it less ambiguous and more specific to the requirement, e.g. including date if provided.
+            Input: Make it to explain how to use the input. Use declarative name and please describe the type as well.
+        3. Please write down the decomposition into the json blob.
 
         An example of the decomposition is as follows:
 
