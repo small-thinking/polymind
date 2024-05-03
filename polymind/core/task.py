@@ -113,7 +113,7 @@ class AtomTask(BaseTask):
         ---
         {tool_spec}
         ---
-        Please put the result into the ```json blob```. Example is as follows:
+        Please extract the result into the ```json blob```. Example is as follows:
         -- Example 1 --
         ```json
         {{
@@ -141,11 +141,11 @@ class AtomTask(BaseTask):
         Example inputs:
         1.
         ---
-        '{{"output": "I\'m unable to provide real-time data."}}'
+        '{{"context": "I\'m unable to provide real-time data."}}'
         ---
         2.
         ---
-        '{{"output": "\n\n This is a text with many tabs and lines\n\t\t\t\n\n."}}'
+        '{{"question": "\n\n what's the biggest news about AI today?\n\t\t\t\n\n.", "answer": "OpenAI has released GPT-10."}}'
         ---
         Corresponding outputs:
         1.
@@ -157,7 +157,7 @@ class AtomTask(BaseTask):
         2.
         ```
         {{
-            "output": "This is a text with many tabs and lines."
+            "output": "The biggest news about AI today is OpenAI has released GPT-10.",
         }}
         ```
 
@@ -166,7 +166,7 @@ class AtomTask(BaseTask):
         {input}
         ---
 
-        Please put the result into the ```json blob```, and the key should be "output".
+        Please extract and post-process the result into the ```json blob```, and the key should be "output".
     """
 
     def __init__(self, tool_manager: ToolManager, tool_retriever: RetrieveTool, **kwargs):
@@ -267,8 +267,10 @@ class AtomTask(BaseTask):
             "input"
         ] = f"""
             Context: {self.task_context}
-            History previous steps:
+            Output of the previous steps:
+            ------
             {memory_context}
+            ------
             {input_field}
             Objective: {self.task_name}
         """
@@ -368,13 +370,13 @@ class SequentialTask(CompositeTask):
         super().__init__(task_name=task_name, memory=memory, **kwargs)
         self.tasks = tasks
 
-    def _update_context(self, input: Message) -> None:
+    def _update_context(self, input: Message) -> Message:
         """Updates the context of the task.
 
         This function increments the index in the context by 1.
         If the context is empty, it initializes the index to 0.
         """
-        updated_context = copy.deepcopy(self.context)
+        updated_context: Message = copy.deepcopy(input)
         # Change output to input.
         if "output" in updated_context.content:
             updated_context.content["input"] = updated_context.content["output"]

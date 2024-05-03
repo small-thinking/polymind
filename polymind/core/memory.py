@@ -30,7 +30,7 @@ class LinearMemory(Memory):
         """
         self.memory_list.append(piece)
 
-    def get_memory(self, last_k: int = 0, **kwargs) -> str:
+    def get_memory(self, last_k: int = 5, **kwargs) -> str:
         """Get the last k pieces of memory."""
         if last_k == 0 or last_k > len(self.memory_list):
             return "\n".join(self.memory_list)
