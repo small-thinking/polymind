@@ -266,7 +266,7 @@ class AtomTask(BaseTask):
         input.content[
             "input"
         ] = f"""
-            Context: {self.task_context}
+            Context: 
             Output of the previous steps:
             ------
             {memory_context}
