@@ -7,6 +7,7 @@ from typing import List
 
 import pytest
 
+from polymind.core.memory import LinearMemory
 from polymind.core.message import Message
 from polymind.core.task import BaseTask, SequentialTask
 from polymind.core.tool import BaseTool, Param
@@ -79,8 +80,13 @@ class MockTask(BaseTask):
 class TestSequentialTask:
     async def test_sequential_task_execution(self):
         num_tasks = 3
-        tasks = [MockTask(task_name=f"Task{i}", tool=MockTool(tool_name=f"Tool{i}")) for i in range(num_tasks)]
-        sequential_task = SequentialTask(task_name="test_seq_task", tool=MockTool(tool_name="Primary"), tasks=tasks)
+        memory = LinearMemory()
+        tasks = [
+            MockTask(task_name=f"Task{i}", memory=memory, tool=MockTool(tool_name=f"Tool{i}")) for i in range(num_tasks)
+        ]
+        sequential_task = SequentialTask(
+            task_name="test_seq_task", tool=MockTool(tool_name="Primary"), tasks=tasks, memory=memory
+        )
         input_message = Message(content={"tools_executed": [], "env_tool": []})
         result_message = await sequential_task(input_message)
 
