@@ -1,3 +1,4 @@
+import copy
 import json
 import re
 from abc import ABC, abstractmethod
@@ -7,6 +8,7 @@ from dotenv import load_dotenv
 from pydantic import BaseModel, Field
 
 from polymind.core.logger import Logger
+from polymind.core.memory import LinearMemory, Memory
 from polymind.core.message import Message
 from polymind.core.tool import BaseTool, LLMTool, RetrieveTool, ToolManager
 from polymind.core.utils import json_text_to_tool_param
@@ -22,10 +24,11 @@ class BaseTask(BaseModel, ABC):
 
     task_name: str = Field(description="The name of the task.")
     tool: Optional[BaseTool] = Field(default=None, description="The tool to use for the task.")
+    memory: Memory = Field(default=LinearMemory(), description="The memory to store the state of the task.")
 
-    def __init__(self, task_name: str, tool: Optional[BaseTool] = None, **kwargs):
+    def __init__(self, task_name: str, memory: Memory, tool: Optional[BaseTool] = None, **kwargs):
         load_dotenv(override=True)
-        super().__init__(task_name=task_name, tool=tool, **kwargs)
+        super().__init__(task_name=task_name, tool=tool, memory=memory, **kwargs)
         self._logger = Logger(__file__)
 
     async def __call__(self, input: Message) -> Message:
@@ -38,7 +41,7 @@ class BaseTask(BaseModel, ABC):
         Returns:
             Message: The output message from the task. It will at least have an "output" field.
         """
-        response = await self._execute(input)
+        response = await self._execute(input=input)
         return response
 
     @abstractmethod
@@ -110,7 +113,7 @@ class AtomTask(BaseTask):
         ---
         {tool_spec}
         ---
-        Please put the result into the ```json blob```. Example is as follows:
+        Please extract the result into the ```json blob```. Example is as follows:
         -- Example 1 --
         ```json
         {{
@@ -129,7 +132,7 @@ class AtomTask(BaseTask):
         ```
     """
 
-    reformat_text_prompt: str = """
+    reformat_output_text_prompt: str = """
         Sometimes the text may contains the json blob or other metadata that is not needed.
         Please reformat the text by following the below rules:
         1. Remove keys in the text if it looks like a json blob.
@@ -138,32 +141,31 @@ class AtomTask(BaseTask):
         Example inputs:
         1.
         ---
-        '{{"output": "I\'m unable to provide real-time data."}}'
+        '{{"context": "I\'m unable to connect the Internet.", "answer": "Please check the network connection}}'
         ---
         2.
         ---
-        '{{"output": "\n\n This is a text with many tabs and lines\n\t\t\t\n\n."}}'
+        '{{"context": "\n what's the biggest news about AI today?\n\t\t\n\n.", "answer": "OpenAI released GPT-10."}}'
         ---
         Corresponding outputs:
         1.
         ```
         {{
-            "output": "I'm unable to provide real-time data."
+            "output": "If unable to provide real-time data, please check the network connection."
         }}
         ```
         2.
         ```
         {{
-            "output": "This is a text with many tabs and lines."
+            "output": "The biggest news about AI today is OpenAI has released GPT-10.",
         }}
         ```
 
-        The real input is as below:
-        ---
+        The real input is available in the below json blob.
+        Please consolidate and convert the info into the ```json blob```, and the key should be "output".
+        ```json
         {input}
-        ---
-
-        Please put the result into the ```json blob```, and the key should be "output".
+        ```
     """
 
     def __init__(self, tool_manager: ToolManager, tool_retriever: RetrieveTool, **kwargs):
@@ -219,12 +221,12 @@ class AtomTask(BaseTask):
         for param in output_spec:
             output_dict[param.name] = tool_response_message.content.get(param.name, "")
         # Put the results into the "output" field.
-        reformatted_text = await self._reformat_text(json.dumps(output_dict))
+        reformatted_text = await self._reformat_output(text=json.dumps(output_dict))
         response = Message(content={"output": reformatted_text})
         return response
 
-    async def _reformat_text(self, text: str) -> str:
-        """Reformat the text by removing unnecessary metdata from the text.
+    async def _reformat_output(self, text: str) -> str:
+        """Reformat the output text by removing unnecessary metdata from the text.
 
         Args:
             text (str): The text to be reformatted.
@@ -232,7 +234,7 @@ class AtomTask(BaseTask):
         Returns:
             str: The reformatted text.
         """
-        reformat_text_prompt = self.reformat_text_prompt.format(input=text)
+        reformat_text_prompt = self.reformat_output_text_prompt.format(input=text)
         self._logger.debug(f"Before reformating text: {text}")
         llm_response = await self.llm_tool(Message(content={"input": reformat_text_prompt}))
         content = llm_response.content["output"]
@@ -259,11 +261,15 @@ class AtomTask(BaseTask):
         """
         # Task objective should be part of the task name.
         input_field = str(input.content.get("input", ""))
+        memory_context = self.memory.get_memory() if self.memory else ""
         input.content[
             "input"
         ] = f"""
-            Context: {self.task_context}
-            Input from the previous steps:
+            Context:
+            Output of the previous steps:
+            ------
+            [{memory_context}]
+            ------
             {input_field}
             Objective: {self.task_name}
         """
@@ -287,7 +293,7 @@ class AtomTask(BaseTask):
         answer_blob = json.loads(content)
         # Directly answer the question.
         if "output" in answer_blob:
-            reformatted_text = await self._reformat_text(answer_blob["output"])
+            reformatted_text = await self._reformat_output(answer_blob["output"])
             response = Message(content={"output": reformatted_text})
             return response
         else:
@@ -295,6 +301,9 @@ class AtomTask(BaseTask):
             self._logger.tool_log("Use the tool to answer the question.")
             response = await self._use_tool(objective=self.task_name, tool_description=answer_blob["action"])
         self._logger.task_log(f"Output of task {self.task_name}: {response.content}")
+        # Add the objective and output to the memory.
+        response_output = response.content["output"]
+        self.memory.set_memory(piece=f"{self.task_name}: {response_output}")
         return response
 
 
@@ -312,8 +321,7 @@ class CompositeTask(BaseTask, ABC):
         The derived class must implement this method to define the behavior of the composite task.
 
         Args:
-            input (Message): The input to the composite task carried in a message.
-            context (Message): The context of the composite task carried in a message.
+            input (Message): The input to the next task.
 
         Returns:
             BaseTask: The next sub-task to execute. None if there is no more sub-task to execute.
@@ -336,6 +344,12 @@ class CompositeTask(BaseTask, ABC):
             Message: The result of the composite task carried in a message.
         """
         message = input
+        # updated_message = self._update_context(input=message)
+        # task = self._get_next_task(updated_message)
+        # while task:
+        #     task_result_message = await task(input=updated_message)
+        #     output_message = self._update_context(input=task_result_message)
+        #     task = self._get_next_task(output_message)
         self._update_context(input=message)
         task = self._get_next_task(message)
         while task:
@@ -351,7 +365,7 @@ class SequentialTask(CompositeTask):
     task_name: str = Field(default="sequential-task", description="The name of the task.")
     tasks: List[BaseTask] = Field(default_factory=list)
 
-    def __init__(self, tasks: List[BaseTask], task_name: str = "sequential-task", **kwargs):
+    def __init__(self, tasks: List[BaseTask], memory: Memory, task_name: str = "sequential-task", **kwargs):
         """Initializes a SequentialTask object.
 
         Args:
@@ -359,23 +373,24 @@ class SequentialTask(CompositeTask):
             task_name (str, optional): The name of the task. Defaults to "sequential-task".
             **kwargs: Additional keyword arguments.
         """
-        super().__init__(task_name=task_name, **kwargs)
+        super().__init__(task_name=task_name, memory=memory, **kwargs)
         self.tasks = tasks
 
-    def _update_context(self, input: Message) -> None:
+    def _update_context(self, input: Message) -> Message:
         """Updates the context of the task.
 
         This function increments the index in the context by 1.
         If the context is empty, it initializes the index to 0.
         """
+        updated_context: Message = copy.deepcopy(input)
         # Change output to input.
-        if "output" in input.content:
-            input.content["input"] = input.content["output"]
+        if "output" in updated_context.content:
+            updated_context.content["input"] = updated_context.content["output"]
         if not bool(self.context.content):
             self.context = Message(content={"idx": 0})
         else:
             self.context.content["idx"] += 1
-        return input
+        return updated_context
 
     def _get_next_task(self, input: Message) -> BaseTask:
         """

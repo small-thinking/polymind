@@ -7,6 +7,7 @@ from pydantic import Field
 
 from polymind.core.agent import Agent, ThoughtProcess
 from polymind.core.logger import Logger
+from polymind.core.memory import LinearMemory, Memory
 from polymind.core.message import Message
 from polymind.core.task import AtomTask, SequentialTask
 from polymind.core.tool import RetrieveTool, ToolManager
@@ -24,6 +25,7 @@ class ChainOfTasks(ThoughtProcess):
 
     thought_process_name: str = "ChainOfTasks"
     tasks_list: SequentialTask = Field(default=None, description="The list of tasks to execute in sequence.")
+    memory: Memory = Field(default=LinearMemory(), description="The memory to store the intermediate results.")
 
     reasoner: LLMTool = Field(default=None, description="The reasoner that will be used in the thought process.")
     retries: int = Field(default=3, description="The number of retries if the task fails.")
@@ -71,6 +73,7 @@ class ChainOfTasks(ThoughtProcess):
         self.reasoner = reasoner
         self._tool_manager = tool_manager
         self._tool_retriever = tool_retriever
+        self.memory = LinearMemory()
         if not self._tool_manager:
             raise ValueError("Tool manager is not provided.")
         if not self._tool_retriever:
@@ -133,11 +136,12 @@ class ChainOfTasks(ThoughtProcess):
                 llm_tool=self.reasoner,
                 tool_manager=self._tool_manager,
                 tool_retriever=self._tool_retriever,
+                memory=self.memory,
                 task_name=f"Task {task_id}: {task_meta['objective']}",
             )
             tasks.append(task)
             self._logger.task_log(f"Task {task_id}: {task_meta['objective']} constructed.")
-        return SequentialTask(tasks=tasks)
+        return SequentialTask(tasks=tasks, memory=self.memory)
 
     async def _execute(self, agent: Agent, input: Message) -> Message:
         """Use reasoner to breakdown the problem into a series of tasks and execute them in order."""
