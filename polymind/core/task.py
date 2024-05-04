@@ -141,17 +141,17 @@ class AtomTask(BaseTask):
         Example inputs:
         1.
         ---
-        '{{"context": "I\'m unable to provide real-time data."}}'
+        '{{"context": "I\'m unable to connect the Internet.", "answer": "Please check the network connection}}'
         ---
         2.
         ---
-        '{{"question": "\n\n what's the biggest news about AI today?\n\t\t\t\n\n.", "answer": "OpenAI has released GPT-10."}}'
+        '{{"context": "\n what's the biggest news about AI today?\n\t\t\n\n.", "answer": "OpenAI released GPT-10."}}'
         ---
         Corresponding outputs:
         1.
         ```
         {{
-            "output": "I'm unable to provide real-time data."
+            "output": "If unable to provide real-time data, please check the network connection."
         }}
         ```
         2.
@@ -161,12 +161,11 @@ class AtomTask(BaseTask):
         }}
         ```
 
-        The real input is as below:
-        ---
+        The real input is available in the below json blob.
+        Please consolidate and convert the info into the ```json blob```, and the key should be "output".
+        ```json
         {input}
-        ---
-
-        Please extract and post-process the result into the ```json blob```, and the key should be "output".
+        ```
     """
 
     def __init__(self, tool_manager: ToolManager, tool_retriever: RetrieveTool, **kwargs):
@@ -266,10 +265,10 @@ class AtomTask(BaseTask):
         input.content[
             "input"
         ] = f"""
-            Context: 
+            Context:
             Output of the previous steps:
             ------
-            {memory_context}
+            [{memory_context}]
             ------
             {input_field}
             Objective: {self.task_name}
@@ -303,7 +302,8 @@ class AtomTask(BaseTask):
             response = await self._use_tool(objective=self.task_name, tool_description=answer_blob["action"])
         self._logger.task_log(f"Output of task {self.task_name}: {response.content}")
         # Add the objective and output to the memory.
-        self.memory.set_memory(piece=f"{self.task_name}: {response.content}")
+        response_output = response.content["output"]
+        self.memory.set_memory(piece=f"{self.task_name}: {response_output}")
         return response
 
 
@@ -344,11 +344,17 @@ class CompositeTask(BaseTask, ABC):
             Message: The result of the composite task carried in a message.
         """
         message = input
-        updated_message = self._update_context(input=message)
-        task = self._get_next_task(updated_message)
+        # updated_message = self._update_context(input=message)
+        # task = self._get_next_task(updated_message)
+        # while task:
+        #     task_result_message = await task(input=updated_message)
+        #     output_message = self._update_context(input=task_result_message)
+        #     task = self._get_next_task(output_message)
+        self._update_context(input=message)
+        task = self._get_next_task(message)
         while task:
-            task_result_message = await task(input=updated_message)
-            output_message = self._update_context(input=task_result_message)
+            message = await task(message)
+            output_message = self._update_context(input=message)
             task = self._get_next_task(output_message)
         return output_message
 

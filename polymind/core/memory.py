@@ -21,6 +21,7 @@ class LinearMemory(Memory):
     """
 
     memory_list: List[str] = Field(default=[], description="The list of memory stored in the memory.")
+    capacity: int = Field(default=100, description="The capacity of the memory.")
 
     def set_memory(self, piece: str, **kwargs) -> None:
         """Set the memory.
@@ -29,9 +30,15 @@ class LinearMemory(Memory):
             piece (str): The piece of memory to store.
         """
         self.memory_list.append(piece)
+        if len(self.memory_list) > self.capacity:
+            self.memory_list.pop(0)
 
     def get_memory(self, last_k: int = 5, **kwargs) -> str:
-        """Get the last k pieces of memory."""
+        """Get the last k pieces of memory.
+
+        Args:
+            last_k (int): The number of last pieces of memory to retrieve.
+        """
         if last_k == 0 or last_k > len(self.memory_list):
             return "\n".join(self.memory_list)
         else:
