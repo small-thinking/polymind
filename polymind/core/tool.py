@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import importlib.util
 import inspect
 import json
@@ -661,7 +662,9 @@ class RetrieveTool(BaseTool, ABC):
 
 
 class CodeGenerationTool(BaseTool, ABC):
-    """A tool that can generate code based on user requirements and execute it."""
+    """A tool that can generate code based on user requirements and execute it.
+    It will first
+    """
 
     tool_name: str = Field(default="code_generation_tool", description="The name of the tool.")
     max_attempts: int = Field(default=3, description="The maximum number of attempts to generate the code.")
@@ -698,8 +701,10 @@ class CodeGenerationTool(BaseTool, ABC):
         Requirement: Write a function draw a pie chart based on the input data.
         Code:
         ```python
+        # Import the library
         import matplotlib.pyplot
         import json
+        
         data = [10, 20, 30, 40]  # Data in user input
         plt.pie(data)
         # Save the plot to a file
@@ -717,14 +722,19 @@ class CodeGenerationTool(BaseTool, ABC):
         5. If the requirement is about mathematical calculation, you can generate corresponding code or using numpy.
 
         The below is the actual user requirement:
-        ------
+        <user_requirement>
         {user_requirement}
-        ------
+        </user_requirement>
+        
+        In case you want to know the current date:
+        <current_date>
+        {current_date}
+        </current_date>
 
         The previous error if any:
-        ------
+        <previous_error>
         {previous_error}
-        ------
+        </previous_error>
     """
 
     output_extract_template: str = """
@@ -839,61 +849,20 @@ class CodeGenerationTool(BaseTool, ABC):
 
     async def _code_gen(self, requirement: str, previous_errors: List[str]) -> str:
         previous_error = "\n".join(previous_errors)
-        prompt = self.codegen_prompt_template.format(user_requirement=requirement, previous_error=previous_error)
+        current_date = datetime.datetime.now().strftime("%Y-%m-%d")
+        prompt = self.codegen_prompt_template.format(
+            user_requirement=requirement, current_date=current_date, previous_error=previous_error
+        )
         input_message = Message(content={"input": prompt})
         response_message = await self._llm_tool(input=input_message)
         generated_text = textwrap.dedent(response_message.content.get("output", ""))
         code = ""
-        code_block = re.search(r"```python(.*?)```", generated_text, re.DOTALL)
+        code_block = re.search(r"```(?:python)?(.*?)```", generated_text, re.DOTALL)
         if code_block:
             code = code_block.group(1).strip()
             return code
         self._logger.error(f"Failed to generate code: {generated_text}")
         raise ValueError(f"Failed to generate code: {generated_text}")
-
-    def _extract_required_packages(self, code: str) -> List[str]:
-        # Regex to capture both simple imports, aliased imports, and from-imports
-        pattern = r"\bimport\s+([\w]+)|\bfrom\s+([\w]+)\b.*?import"
-        matches = re.findall(pattern, code)
-        # Extract non-empty matches and ensure only the package name is included
-        packages = {match[0] or match[1] for match in matches}
-        return list(packages)
-
-    # async def _code_run(self, code: str) -> str:
-    #     # Ensure all required packages are installed before executing the code
-    #     packages = self._extract_required_packages(code)
-    #     self._logger.debug(f"Code content:\n{code}")
-    #     self._logger.debug(f"Required packages: {packages}")
-    #     # Install the required packages if they are not installed
-    #     for package in packages:
-    #         subprocess.check_call([sys.executable, "-m", "pip", "install", package])
-    #     # Add imported packages to the global namespace
-    #     global_vars = globals().copy()
-    #     for package in packages:
-    #         module = importlib.import_module(package)
-    #         global_vars.update({name: getattr(module, name) for name in dir(module)})
-
-    #     local = {"output": {}}
-    #     exec(code, global_vars, local)
-    #     output = local.get("output", {})
-    #     output_json_str = json.dumps(output, indent=4)
-    #     return output_json_str
-
-    async def _install_packages(self, packages: List[str]) -> None:
-        for package in packages:
-            if package in self.skipped_packages:
-                continue
-            try:
-                proc = await asyncio.create_subprocess_exec(
-                    sys.executable, "-m", "pip", "install", package, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-                )
-                stdout, stderr = await proc.communicate()
-                if proc.returncode != 0:
-                    self._logger.error(f"Error installing {package}: {stderr.decode()}")
-                    raise Exception(f"Error installing {package}: {stderr.decode()}")
-            except Exception as e:
-                self._logger.error(f"Failed to install package {package}: {e}")
-                raise
 
     async def _code_run(self, code: str) -> str:
         packages = self._extract_required_packages(code)
@@ -927,6 +896,53 @@ class CodeGenerationTool(BaseTool, ABC):
                 os.unlink(temp_file_name)
             except Exception as e:
                 self._logger.error(f"Failed to delete temporary file: {e}")
+
+    def _extract_required_packages(self, code: str) -> List[str]:
+        """
+        Extract the required package names from the given Python code string.
+
+        Args:
+            code (str): The Python code string.
+
+        Returns:
+            List[str]: A list of package names required by the code.
+        """
+        packages = set()
+
+        for line in code.split("\n"):
+            line = line.strip()
+
+            # Match import statements
+            import_match = re.match(r"import\s+([a-zA-Z0-9_,\s]+)(\s+as\s+\w+)?", line)
+            if import_match:
+                for package_with_alias in import_match.group(1).split(","):
+                    package = package_with_alias.strip().split(" ")[0]
+                    if "." in package:
+                        package = package.split(".")[0]
+                    packages.add(package)
+
+            # Match from-import statements
+            from_import_match = re.match(r"from\s+([a-zA-Z0-9_]+)\s+import", line)
+            if from_import_match:
+                packages.add(from_import_match.group(1))
+
+        return list(packages)
+
+    async def _install_packages(self, packages: List[str]) -> None:
+        for package in packages:
+            if package in self.skipped_packages:
+                continue
+            try:
+                proc = await asyncio.create_subprocess_exec(
+                    sys.executable, "-m", "pip", "install", package, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+                )
+                _, stderr = await proc.communicate()
+                if proc.returncode != 0:
+                    self._logger.error(f"Error installing {package}: {stderr.decode()}")
+                    raise Exception(f"Error installing {package}: {stderr.decode()}")
+            except Exception as e:
+                self._logger.error(f"Failed to install package {package}: {e}")
+                raise
 
     async def _output_parse(self, requirement: str, output: str) -> str:
         """Use LLM to parse the output based on the requirement.

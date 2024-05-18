@@ -12,8 +12,7 @@ from pydantic import Field
 
 from polymind.core.logger import Logger
 from polymind.core.message import Message
-from polymind.core.tool import (BaseTool, CodeGenerationTool, Embedder,
-                                LLMTool, Param)
+from polymind.core.tool import BaseTool, CodeGenerationTool, Embedder, LLMTool, Param
 from polymind.core_tools.rest_api_tool import RestAPITool
 
 
@@ -48,6 +47,7 @@ class OpenAIChatTool(LLMTool):
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
+        print(f"llm_name: {self.llm_name}")
         self._logger = Logger(__file__)
 
     def _set_client(self):

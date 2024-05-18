@@ -5,8 +5,7 @@
 import json
 import os
 import re
-import textwrap
-from typing import List
+from typing import Any, Dict, List, Union
 from unittest.mock import AsyncMock
 
 import pytest
@@ -481,3 +480,90 @@ class TestToolManager:
         response = await manager.invoke_tool("test_tool", input=params)
         assert response.get("result") == "tset", "The result should be the reverse of the input query"
         assert response.get("result2") == "olleh", "The result should be the reverse of the input query2"
+
+
+class ConcreteCodeGenerationTool(CodeGenerationTool):
+    def __init__(self, max_attempts: int = 1):
+        super().__init__(max_attempts=max_attempts)
+
+    def _set_llm_client(self):
+        self._llm_tool = AsyncMock()
+
+
+class TestCodeGenerationTool:
+    @pytest.fixture
+    def code_gen_tool(self):
+        return ConcreteCodeGenerationTool()
+
+    @pytest.mark.parametrize(
+        "code, expected",
+        [
+            ("import os\nimport sys", ["os", "sys"]),
+            ("from collections import defaultdict\nfrom typing import List", ["collections", "typing"]),
+            ("from typing import List as L, Dict as D", ["typing"]),
+            ("import numpy as np, pandas as pd", ["numpy", "pandas"]),
+            ("from collections import (\n    defaultdict,\n    namedtuple\n)", ["collections"]),
+            ("import os\nimport sys\nfrom collections import defaultdict, namedtuple", ["os", "sys", "collections"]),
+            ("import os  # operating system\nimport sys  # system", ["os", "sys"]),
+            ("print('Hello, World!')", []),
+        ],
+    )
+    def test_extract_required_packages(self, code_gen_tool, code, expected):
+        result = code_gen_tool._extract_required_packages(code)
+        assert sorted(result) == sorted(expected), f"Expected {expected}, but got {result}"
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "requirement, output, llm_response, expected, expect_exception",
+        [
+            (
+                "Extract relevant information",
+                '{"key": "value"}',
+                {"output": '```json\n{"status": "success", "output": {"parsed_key": "parsed_value"}}\n```'},
+                '{\n    "parsed_key": "parsed_value"\n}',
+                False,
+            ),
+            (
+                "Summarize the results",
+                '{"result": "data"}',
+                {"output": '```json\n{"status": "success", "output": {"summary": "short_summary"}}\n```'},
+                '{\n    "summary": "short_summary"\n}',
+                False,
+            ),
+            (
+                "Get the error details",
+                '{"error": "details"}',
+                {"output": '```json\n{"status": "error", "reason": "Invalid data format"}\n```'},
+                "Generated output is incorrect: Invalid data format",
+                True,
+            ),
+            (
+                "Test missing JSON block",
+                '{"missing": "json"}',
+                {"output": "No JSON block here"},
+                "Cannot find the parsed output in the response: No JSON block here.",
+                True,
+            ),
+        ],
+    )
+    async def test_output_parse(
+        self,
+        code_gen_tool: ConcreteCodeGenerationTool,
+        requirement: str,
+        output: str,
+        llm_response: Dict[str, Any],
+        expected: Union[str, pytest.raises],
+        expect_exception: bool,
+    ) -> None:
+        # Mock the LLM tool response
+        code_gen_tool._llm_tool.return_value = AsyncMock(content=llm_response)
+
+        if expect_exception:
+            with pytest.raises(ValueError) as exc_info:
+                await code_gen_tool._output_parse(requirement, output)
+            assert (
+                str(exc_info.value) == expected
+            ), f"Expected exception message: [{expected}], but got: [{exc_info.value}]"
+        else:
+            result = await code_gen_tool._output_parse(requirement, output)
+            assert result == expected, f"Expected {expected}, but got {result}"
