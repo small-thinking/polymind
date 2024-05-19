@@ -112,17 +112,21 @@ class ToolRetriever(RetrieveTool):
     embed_dim: int = Field(default=384, description="The dimension of the embedding.")
 
     refine_retrieval_prompt_template: str = """
-        Please think step-by-step before answering the question.
-        Please follow the below rules:
+        Please think step-by-step before answering the question with the below rules:
         1. First check each tool's name and their descriptions, and only pick from the list, not make up new tools.
         2. We use RAG to retrieve the relevant tools to fulfill the query. The order of the tools may not be right.
         3. Return the result as List[str], where each str is the name of the tool.
         4. Please carefully review the available tools,
             and pick ONLY ONE that is the highest chance to fulfill the below query:
+            
+        <query>
         {query}
+        </query>
 
         The retrieved tools:
+        <available_tools>
         {candidates}
+        </available_tools>
 
         Example input:
         ```json
@@ -229,8 +233,11 @@ class ToolRetriever(RetrieveTool):
         self._logger.debug(f"Before format: {ranked_text}")
         # Parse the ranked_text.
         try:
+            # Fix the single quote to double quote.
+            ranked_text = ranked_text.replace("'", '"')
             formatted_results = json.loads(ranked_text)
             response_message = Message(content={self.result_key: formatted_results})
             return response_message
         except json.JSONDecodeError:
+            # If the returned text directly contain the tool names, then wrap as a json.
             self._logger.error(f"Failed to parse the ranked_text: {ranked_text}")

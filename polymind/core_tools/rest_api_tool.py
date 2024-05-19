@@ -72,7 +72,7 @@ class RestAPITool(BaseTool):
                 example="200",
             ),
             Param(
-                name="response",
+                name="output",
                 type="Dict[str, str]",
                 required=False,
                 description="The parsed response body. Can be a dictionary if JSON was returned or a string otherwise.",
@@ -143,6 +143,8 @@ class TavilyRestAPITool(RestAPITool):
         "Search engine to search for external information.",
         "Search for information on the internet for timely information.",
         "External search engine to search for public information.",
+        "Search latest information on the internet.",
+        "Search up-to-date information on the internet.",
     ]
 
     def __init__(self):
@@ -171,7 +173,7 @@ class TavilyRestAPITool(RestAPITool):
         input.set("headers", {"Content-Type": "application/json"})
         input.set("method", "POST")
         input.set("api_key", os.environ.get("TAVILY_API_KEY"))
-        input.set("max_results", 3)
+        input.set("max_results", 10)
 
     def _post_process_response(self, response: Message) -> Message:
         """Only return the answer in the field "output"."""
