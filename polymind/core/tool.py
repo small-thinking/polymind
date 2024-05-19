@@ -116,6 +116,9 @@ class BaseTool(BaseModel, ABC):
         """,
     )
 
+    class Config:
+        protected_namespaces = ()
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         load_dotenv(override=True)
@@ -473,7 +476,8 @@ class LLMTool(BaseTool, ABC):
         """Execute the tool and return the result.
         The input message should contain a "prompt" and optionally a "system_prompt".
         """
-
+        # Current date time
+        current_datetime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         # Validate the input message.
         prompt = input.get("input", "")
         system_prompt = input.get("system_prompt", "")
@@ -485,6 +489,7 @@ class LLMTool(BaseTool, ABC):
                 "temperature": self.temperature,
                 "top_p": self.top_p,
                 "system_prompt": system_prompt,
+                "datetime": current_datetime,
             }
         )
         if self.stop:
@@ -795,7 +800,7 @@ class CodeGenerationTool(BaseTool, ABC):
     def input_spec(self) -> List[Param]:
         return [
             Param(
-                name="code_gen_requirement",
+                name="query",
                 type="str",
                 required=True,
                 description="A natural language description of the problem or requirement.",
@@ -821,7 +826,7 @@ class CodeGenerationTool(BaseTool, ABC):
 
     async def _execute(self, input: Message) -> Message:
         previous_errors = []
-        requirement = input.content["code_gen_requirement"]
+        requirement = input.content["query"]
         attempts = 0
         while attempts < self.max_attempts:
             code = await self._code_gen(requirement=requirement, previous_errors=previous_errors)

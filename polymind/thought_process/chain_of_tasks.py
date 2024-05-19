@@ -34,8 +34,9 @@ class ChainOfTasks(ThoughtProcess):
     problem_decomposition_prompt: str = """
         Please read the requirement carefully, and think step-by-step before answering the question.
         Follow the below rules:
-        1. Please decompose the problem into 1-5 steps, depending on the complexity of the problem.
+        1. Please decompose the problem into up to 5 sub-tasks, depending on the complexity of the problem.
             Each of the following sub-task will use the output of the previous task as input.
+            Each sub-task is considered to be an atomic task that can be resolved using one tool.
         2. For each step, please give it an "objective", "input" and "output".
             Objectives: Make it less ambiguous and more specific to the requirement, e.g. including date if provided.
             Input: Make it to explain how to use the input. Use declarative name and please describe the type as well.
