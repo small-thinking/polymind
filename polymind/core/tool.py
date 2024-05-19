@@ -709,7 +709,7 @@ class CodeGenerationTool(BaseTool, ABC):
         # Import the library
         import matplotlib.pyplot
         import json
-    
+
         data = [10, 20, 30, 40]  # Data in user input
         plt.pie(data)
         # Save the plot to a file
@@ -730,7 +730,7 @@ class CodeGenerationTool(BaseTool, ABC):
         <user_requirement>
         {user_requirement}
         </user_requirement>
-    
+
         In case you want to know the current date:
         <current_date>
         {current_date}
@@ -748,7 +748,7 @@ class CodeGenerationTool(BaseTool, ABC):
         Please check carefully whether the result in the output fulfilled the user requirement.
         If the output fulfilled the user requirement, extract it as str and put it into a json blob
         with "status" and "output" fields.
-        
+
         The below is the actual user requirement:
         <requirement>
         {requirement}
@@ -758,7 +758,7 @@ class CodeGenerationTool(BaseTool, ABC):
         <output>
         {output}
         </output>
-        
+
         <example>
         An example input:
         Requirement: Find the stock price of Google on 2024-04-01.
