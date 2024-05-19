@@ -709,7 +709,7 @@ class CodeGenerationTool(BaseTool, ABC):
         # Import the library
         import matplotlib.pyplot
         import json
-        
+    
         data = [10, 20, 30, 40]  # Data in user input
         plt.pie(data)
         # Save the plot to a file
@@ -730,7 +730,7 @@ class CodeGenerationTool(BaseTool, ABC):
         <user_requirement>
         {user_requirement}
         </user_requirement>
-        
+    
         In case you want to know the current date:
         <current_date>
         {current_date}
