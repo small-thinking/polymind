@@ -101,6 +101,7 @@ class BaseTool(BaseModel, ABC):
     """
 
     tool_name: str = Field(..., description="The name of the tool.")
+    default_to_index: bool = Field(True, description="Whether to index the tool by default.")
     descriptions: List[str] = Field(
         ...,
         min_length=3,
@@ -330,7 +331,10 @@ class ToolManager:
             if issubclass(obj, BaseTool) and not inspect.isabstract(obj):
                 self._logger.info(f"Loading tool {name}")
                 tool_obj = obj()
-                self.tools[tool_obj.tool_name] = obj()
+                if tool_obj.default_to_index:
+                    self.tools[tool_obj.tool_name] = tool_obj
+                else:
+                    self._logger.info(f"Skipping tool {name}")
 
     def add_tools(self, tool_folder: str):
         """Add tools from the given folder.
@@ -390,6 +394,68 @@ class LLMTool(BaseTool, ABC):
         super().__init__(**kwargs)
         self._logger = Logger(__file__)
         self._set_client()
+
+    def input_spec(self) -> List[Param]:
+        """Return the input specification of the tool.
+        The derived class must implement this method to define the input specification of the tool.
+
+        Returns:
+            List[Param]: The input specification of the tool.
+        """
+        return [
+            Param(
+                name="system_prompt",
+                type="str",
+                required=False,
+                example="You are a helpful AI assistant.",
+                description="The system prompt for the chat.",
+            ),
+            Param(
+                name="input",
+                type="str",
+                required=True,
+                example="hello, how are you?",
+                description="The prompt for the chat.",
+            ),
+            Param(
+                name="max_tokens",
+                type="int",
+                required=False,
+                example="1500",
+                description="The maximum number of tokens for the chat.",
+            ),
+            Param(
+                name="temperature",
+                type="float",
+                required=False,
+                example="0.7",
+                description="The temperature for the chat.",
+            ),
+            Param(
+                name="top_p",
+                type="float",
+                required=False,
+                example="0.1",
+                description="The top p for the chat.",
+            ),
+        ]
+
+    def output_spec(self) -> List[Param]:
+        """Return the output specification of the tool.
+        The derived class must implement this method to define the output specification of the tool.
+
+        Returns:
+            List[Param]: The output specification of the tool.
+        """
+        return [
+            Param(
+                name="output",
+                type="str",
+                required=True,
+                example="I'm good, how are you?",
+                description="The response from the chat.",
+            ),
+        ]
 
     @abstractmethod
     def _set_client(self):

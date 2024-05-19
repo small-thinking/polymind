@@ -143,6 +143,7 @@ class TavilyRestAPITool(RestAPITool):
         "Search engine to search for external information.",
         "Search for information on the internet for timely information.",
         "External search engine to search for public information.",
+        "Find the recent information on the internet.",
     ]
 
     def __init__(self):
