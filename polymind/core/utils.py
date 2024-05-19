@@ -83,7 +83,8 @@ def json_text_to_tool_param(json_text: str, tool: BaseTool) -> Dict[str, Any]:
                 )
         elif param.required:
             raise ValueError(
-                f"The required parameter [{param_name}] is not provided. Provided params: {tool_param_dict}"
+                f"The required parameter [{param_name}] is not provided for tool {tool.tool_name}.",
+                f"Provided params: {tool_param_dict}",
             )
 
     return tool_param_dict_typed
