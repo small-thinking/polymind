@@ -3,6 +3,7 @@ This file contains the necessary tools of using OpenAI models.
 For now, it contains two tools: OpenAIChatTool and OpenAIEmbeddingTool.
 """
 
+import datetime
 import os
 from typing import List
 
@@ -12,8 +13,7 @@ from pydantic import Field
 
 from polymind.core.logger import Logger
 from polymind.core.message import Message
-from polymind.core.tool import (BaseTool, CodeGenerationTool, Embedder,
-                                LLMTool, Param)
+from polymind.core.tool import BaseTool, CodeGenerationTool, Embedder, LLMTool, Param
 from polymind.core_tools.rest_api_tool import RestAPITool
 
 
@@ -40,7 +40,9 @@ class OpenAIChatTool(LLMTool):
     ]
     client: AsyncOpenAI = Field(default=None)
     llm_name: str = Field(default="gpt-3.5-turbo")
-    system_prompt: str = Field(default="You are a helpful AI assistant.")
+    system_prompt: str = Field(
+        default="You are a helpful AI assistant. You need to communicate with the user in their language."
+    )
     max_tokens: int = Field(default=1500)
     temperature: float = Field(default=0.7)
     stop: str = Field(default=None)
@@ -133,11 +135,14 @@ class OpenAIChatTool(LLMTool):
             Message: The result of the tool carried in a message.
         """
         prompt = input.get("input", "")
-        system_prompt = input.get("system_prompt", self.system_prompt)
         temperature = input.get("temperature", self.temperature)
         max_tokens = input.get("max_tokens", self.max_tokens)
         top_p = input.get("top_p", self.top_p)
         stop = input.get("stop", self.stop)
+        datetime_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        current_datetime = input.get("datetime", datetime_str)
+        system_prompt = input.get("system_prompt", self.system_prompt)
+        system_prompt = f"{system_prompt}\nCurrent datetime: {current_datetime}"
 
         messages = [
             {"role": "system", "content": system_prompt},

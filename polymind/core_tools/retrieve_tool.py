@@ -230,7 +230,7 @@ class ToolRetriever(RetrieveTool):
         # Parse the ranked_text.
         try:
             formatted_results = json.loads(ranked_text)
+            response_message = Message(content={self.result_key: formatted_results})
+            return response_message
         except json.JSONDecodeError:
             self._logger.error(f"Failed to parse the ranked_text: {ranked_text}")
-        response_message = Message(content={self.result_key: formatted_results})
-        return response_message
