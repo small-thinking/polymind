@@ -39,6 +39,7 @@ class OpenAIChatTool(LLMTool):
         "Simple calculator that does basic arithmetic calculation.",
     ]
     client: AsyncOpenAI = Field(default=None)
+    # llm_name: str = Field(default="gpt-4o-2024-05-13")
     llm_name: str = Field(default="gpt-3.5-turbo")
     system_prompt: str = Field(
         default="You are a helpful AI assistant. You need to communicate with the user in their language."
