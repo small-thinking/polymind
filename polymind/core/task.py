@@ -103,10 +103,14 @@ class AtomTask(BaseTask):
         Please read the requirement carefully and think step by step.
         Your task is to generate the parameters (key-value pairs) for the tool to be used, according to its input spec.
         Please fill the value with your own understanding of the requirement, instead of using the examples.
-        Please set the value according to the objective:
+        If there are useful data in the context, please use them.
         ---
+        Objective:
         {objective}
+        Tool Description:
         {tool_description}
+        Context:
+        {context}
         ---
         It is expected the output is a json dict with param keys and values.
         The below is the input_spec.
@@ -134,38 +138,38 @@ class AtomTask(BaseTask):
 
     reformat_output_text_prompt: str = """
         Sometimes the text may contains the json blob or other metadata that is not needed.
-        Please reformat the text by following the below rules:
+        Please reformat the text following the below rules:
         1. Remove keys in the text if it looks like a json blob.
         2. Remove excessive escape characters, such as '\n', '\t', etc.
 
-        Example inputs:
-        1.
-        ---
-        '{{"context": "I\'m unable to connect the Internet.", "answer": "Please check the network connection}}'
-        ---
-        2.
-        ---
-        '{{"context": "\n what's the biggest news about AI today?\n\t\t\n\n.", "answer": "OpenAI released GPT-10."}}'
-        ---
-        Corresponding outputs:
-        1.
-        ```
-        {{
-            "output": "If unable to provide real-time data, please check the network connection."
-        }}
-        ```
-        2.
-        ```
-        {{
-            "output": "The biggest news about AI today is OpenAI has released GPT-10.",
-        }}
-        ```
-
+        Examples:
+        <example1>
+            <input1>
+            '{{"context": "I\'m unable to connect the Internet.", "answer": "Please check the network connection}}'
+            </input1>
+        <output1>
+            {{
+                "output": "If unable to provide real-time data, please check the network connection."
+            }}
+        </output1>
+        </example1>
+        <example2>
+            <input2>
+            '{{"context": "\n what's the news about AI today?\n\t\t\n\n.", "answer": "OpenAI released GPT-10."}}'
+            </input2>
+            <output2>
+            {{
+                "output": "The news about AI today is OpenAI has released GPT-10."
+            }}
+            </output2>
+        </example2>
+        <real_input>
         The real input is available in the below json blob.
         Please consolidate and convert the info into the ```json blob```, and the key should be "output".
         ```json
         {input}
         ```
+        </real_input>
     """
 
     def __init__(self, tool_manager: ToolManager, tool_retriever: RetrieveTool, **kwargs):
@@ -201,9 +205,11 @@ class AtomTask(BaseTask):
             raise ValueError(f"Cannot find the tool: [{tool_name}] from the tool manager.")
         tool_spec = tool_instance.to_open_function_format()
         json_blob = json.dumps(tool_spec)
+        memory_context = self.memory.get_memory() if self.memory else ""
         # Generate the parameters for the tool.
         tool_param_gen_prompt = self.gen_param_prompt.format(
             objective=objective,
+            context=memory_context,
             tool_description=tool_description,
             tool_spec=json_blob,
         )
@@ -234,13 +240,13 @@ class AtomTask(BaseTask):
         Returns:
             str: The reformatted text.
         """
-        reformat_text_prompt = self.reformat_output_text_prompt.format(input=text)
         self._logger.debug(f"Before reformating text: {text}")
+        reformat_text_prompt = self.reformat_output_text_prompt.format(input=text)
         llm_response = await self.llm_tool(Message(content={"input": reformat_text_prompt}))
         content = llm_response.content["output"]
         # Extract the json from the ```json blob```.
         if "```" in content:
-            texts = re.findall(r"```(.*?)```", content, re.DOTALL)
+            texts = re.findall(r"```json(.*?)```", content, re.DOTALL)
             if not texts:
                 raise ValueError("Cannot find the text in the response.")
             content = texts[0]
@@ -273,7 +279,7 @@ class AtomTask(BaseTask):
             {input_field}
             Objective: {self.task_name}
         """
-        self._logger.task_log(f"Task {self.task_name}: Context: {self.task_context}")
+        self._logger.task_log(f"Task {self.task_name}: Context: {self.task_context}\n{memory_context}")
         prompt = input.content["input"]
         enhanced_prompt = f"""
             {self.system_prompt}

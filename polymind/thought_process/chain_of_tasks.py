@@ -32,20 +32,23 @@ class ChainOfTasks(ThoughtProcess):
     retry_interval: int = Field(default=5, description="The interval between retries in seconds.")
 
     problem_decomposition_prompt: str = """
-        Please read the requirement carefully, and think step-by-step before answering the question.
+        You need to breakdown a complex problem into a series of tasks.
+        Please read the requirement carefully and think step-by-step before answering the question.
         Follow the below rules:
-        1. Please decompose the problem into up to 5 sub-tasks, depending on the complexity of the problem.
-            Each of the following sub-task will use the output of the previous task as input.
-            Each sub-task is considered to be an atomic task that can be resolved using one tool.
+        1. Decompose the problem into UP TO 5 sub-tasks, depending on the complexity of the problem.
+            Each sub-task can use the output of the previous tasks as input.
+            Each sub-task is considered to solvable using ONE LLM inference or ONE tool.
         2. For each step, please give it an "objective", "input" and "output".
             Objectives: Make it less ambiguous and more specific to the requirement, e.g. including date if provided.
             Input: Make it to explain how to use the input. Use declarative name and please describe the type as well.
         3. Please write down the decomposition into the json blob.
 
         An example of the decomposition is as follows:
+        <example_requirements>
+        The biggest city of the south neighbor country of the country whose capital is Paris.
+        </example_requirements>
 
-        The question: The south neighbor country of the country whose capital is Paris.
-
+        <example_decomposition>
         {
             "steps": [
                 {
@@ -57,9 +60,15 @@ class ChainOfTasks(ThoughtProcess):
                     "objective": "Find the south neighbor country of the country",
                     "input": {"name": "target_country", "type": "str"},
                     "output": {"name": "neighbor_country", "type": "str"}
-                }
+                },
+                (
+                    "objective": "Find the biggest city of the neighbor country",
+                    "input": {"name": "neighbor_country", "type": "str"},
+                    "output": {"name": "biggest_city", "type": "str"}
+                )
             ]
         }
+        </example_decomposition>
     """
 
     def __init__(

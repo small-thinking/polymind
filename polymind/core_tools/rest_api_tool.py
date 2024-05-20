@@ -141,10 +141,11 @@ class TavilyRestAPITool(RestAPITool):
     tool_name: str = "tavily-rest-api-tool"
     descriptions: List[str] = [
         "Search engine to search for external information.",
-        "Search for information on the internet for timely information.",
-        "External search engine to search for public information.",
+        "Retrieve for information on the internet for timely information.",
+        "Retrieve external search engine to search for public information.",
         "Search latest information on the internet.",
         "Search up-to-date information on the internet.",
+        "Look up the world wide web for information.",
     ]
 
     def __init__(self):
