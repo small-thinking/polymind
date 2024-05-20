@@ -3,6 +3,7 @@ import re
 from typing import Any, Dict, List, get_args, get_origin
 
 from polymind.core.tool import BaseTool, Param
+from polymind.core.logger import Logger
 
 
 def extract_content_from_blob(text: str, blob_type: str = "json") -> str:
@@ -22,7 +23,7 @@ def extract_content_from_blob(text: str, blob_type: str = "json") -> str:
     return text
 
 
-def json_text_to_tool_param(json_text: str, tool: BaseTool) -> Dict[str, Any]:
+def json_text_to_tool_param(json_text: str, tool: BaseTool, logger: Logger = None) -> Dict[str, Any]:
     """Convert the JSON text that contains the params to call the tool to the tool parameter dictionary.
 
     Args:
@@ -39,6 +40,8 @@ def json_text_to_tool_param(json_text: str, tool: BaseTool) -> Dict[str, Any]:
     else:
         tool_param = json_text
     tool_param_dict = json.loads(tool_param)
+    if logger:
+        logger.debug(f"Tool param dict: {tool_param_dict}")
     input_spec: List[Param] = tool.input_spec()
 
     def _convert_value(value: Any, target_type: type) -> Any:
