@@ -33,7 +33,6 @@ class ChainOfTasks(ThoughtProcess):
 
     problem_decomposition_prompt: str = """
         You need to breakdown a complex problem into a series of tasks.
-        
         Please read the requirement carefully and think step-by-step before answering the question.
         Follow the below rules:
         1. Decompose the problem into UP TO 5 sub-tasks, depending on the complexity of the problem.
@@ -48,7 +47,7 @@ class ChainOfTasks(ThoughtProcess):
         <example_requirements>
         The biggest city of the south neighbor country of the country whose capital is Paris.
         </example_requirements>
-        
+
         <example_decomposition>
         {
             "steps": [
