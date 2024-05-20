@@ -118,7 +118,7 @@ class ToolRetriever(RetrieveTool):
         3. Return the result as List[str], where each str is the name of the tool.
         4. Please carefully review the available tools,
             and pick ONLY ONE that is the highest chance to fulfill the below query:
-    
+
         <query>
         {query}
         </query>
