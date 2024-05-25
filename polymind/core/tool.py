@@ -921,9 +921,10 @@ class CodeGenerationTool(BaseTool, ABC):
                     packages.add(package)
 
             # Match from-import statements
-            from_import_match = re.match(r"from\s+([a-zA-Z0-9_]+)\s+import", line)
+            from_import_match = re.match(r"from\s+([a-zA-Z0-9_\.]+)\s+import", line)
             if from_import_match:
-                packages.add(from_import_match.group(1))
+                package = from_import_match.group(1).split(".")[0]
+                packages.add(package)
 
         return list(packages)
 

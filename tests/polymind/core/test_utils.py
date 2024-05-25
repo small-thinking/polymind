@@ -3,7 +3,7 @@ Run with the command:
     poetry run pytest tests/polymind/core/test_utils.py
 """
 
-from typing import Any, Dict, List
+from typing import List
 
 import pytest
 
@@ -125,7 +125,13 @@ def test_json_text_to_tool_param_with_missing_required_param():
     """
     with pytest.raises(ValueError) as exc_info:
         json_text_to_tool_param(json_text, tool)
-    assert "The required parameter [is_adult] is not provided." in str(exc_info.value)
+
+    expected_message = "The required parameter [is_adult] is not provided for tool DummyTool."
+    actual_message = str(exc_info.value)
+
+    assert (
+        expected_message in actual_message
+    ), f"Expected error message:\n{expected_message}\n\nActual error message:\n{actual_message}"
 
 
 def test_json_text_to_tool_param_with_incorrect_type_fixable():

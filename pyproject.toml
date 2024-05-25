@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "polymind"
-version = "0.0.45"  # Update this version before publishing to PyPI
+version = "0.0.46"  # Update this version before publishing to PyPI
 description = "PolyMind is a customizable collaborative multi-agent framework for collective intelligence and distributed problem solving."
 authors = ["TechTao"]
 license = "MIT License"
@@ -12,13 +12,15 @@ numpy = "1.26.0"
 qdrant-client = "1.7.0"
 pydantic = "^2.6.3"
 python-dotenv = "^1.0.1"
-openai = "^1.14.0"
 aiohttp = "^3.9.3"
-pymilvus = "2.3.7"
-faiss-cpu = "1.8.0"
 colorama = "^0.4.6"
 tavily-python = "^0.3.3"
-anthropic = "^0.25.6"
+
+# Optional dependencies
+openai = { version = "^1.14.0", optional = true }
+faiss-cpu = { version = "1.8.0", optional = true }
+anthropic = { version = "^0.25.6", optional = true }
+pymilvus = { version = "2.3.7", optional = true }
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.2.0"
@@ -28,6 +30,11 @@ aioresponses = "^0.7.6"
 pytest = "^8.1.1"
 pytest-asyncio = "^0.23.5.post1"
 vulture = "^2.11"
+
+[tool.poetry.extras]
+openai = ["openai"]
+anthropic = ["anthropic"]
+milvus = ["pymilvus"]
 
 [tool.black]
 line-length = 120
