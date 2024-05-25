@@ -34,7 +34,7 @@ jobs:
       run: |
         # Extract all optional dependencies (extras) from pyproject.toml
         EXTRAS=$(grep -oP '\[\[?tool.poetry.extras\]\]?\n\K([a-zA-Z0-9_]+)' pyproject.toml | paste -sd "," -)
-        
+        echo "EXTRAS=$EXTRAS"
         # Install all dependencies including the optional ones
         poetry install --extras "$EXTRAS"
 
