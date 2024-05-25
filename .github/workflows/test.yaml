@@ -35,7 +35,7 @@ jobs:
         python -m pip install toml
         EXTRAS=$(python -c "import toml; pyproject = toml.load('pyproject.toml'); print(','.join(pyproject['tool']['poetry']['extras'].keys()))")
         echo "EXTRAS=$EXTRAS"
-        poetry install --extras "$EXTRAS"
+        poetry install --extras $EXTRAS
 
     - name: Install pytest
       run: |
