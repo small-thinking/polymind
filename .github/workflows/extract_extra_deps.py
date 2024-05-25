@@ -1,4 +1,4 @@
-# .github/workflows/extract_extra_deps.py
+# .github/workflows/extract_extras.py
 import toml
 
 pyproject = toml.load("pyproject.toml")

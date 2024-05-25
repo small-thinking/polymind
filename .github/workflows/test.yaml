@@ -33,9 +33,9 @@ jobs:
     - name: Install dependencies including optional dependencies
       run: |
         python -m pip install toml
-        EXTRAS=$(python .github/workflows/extract_extra_deps.py)
+        EXTRAS=$(python .github/workflows/extract_extras.py)
         echo "EXTRAS=$EXTRAS"
-        poetry install $(echo $EXTRAS | sed "s/,/ --extras /g")
+        poetry install $(echo $EXTRAS | sed 's/\([^,]\+\)/--extras \1/g' | tr '\n' ' ')
 
     - name: Install pytest
       run: |
