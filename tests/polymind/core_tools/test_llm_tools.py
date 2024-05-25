@@ -8,14 +8,11 @@ import re
 import textwrap
 from unittest.mock import AsyncMock, patch
 
-import aioresponses
 import pytest
 
 from polymind.core.message import Message
 from polymind.core_tools.llm_tool import (OpenAIChatTool,
-                                          OpenAICodeGenerationTool,
-                                          OpenAIEmbeddingTool)
-from polymind.core_tools.rest_api_tool import RestAPITool
+                                          OpenAICodeGenerationTool)
 
 
 class TestOpenAIChatTool:
@@ -203,7 +200,7 @@ class TestOpenAICodeGenerationTool:
         ).strip()
         expected_output = '{"result": 42}'
 
-        input_message = Message(content={"code_gen_requirement": "Sum two numbers"})
+        input_message = Message(content={"query": "Sum two numbers"})
 
         result = await code_gen_tool(input_message)
         actual_output = result.content["output"]
