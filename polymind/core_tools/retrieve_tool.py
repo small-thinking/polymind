@@ -3,7 +3,11 @@ import os
 from typing import List
 
 from pydantic import Field
-from pymilvus import MilvusClient
+
+try:
+    from pymilvus import MilvusClient
+except ImportError:
+    print("Please install Milvus client via the command: poetry install -E pymilvus.")
 
 from polymind.core.logger import Logger
 from polymind.core.message import Message
