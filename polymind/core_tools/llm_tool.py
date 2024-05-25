@@ -8,7 +8,6 @@ import os
 from typing import List
 
 try:
-
     import anthropic
     from openai import AsyncOpenAI
 except ImportError:
@@ -17,8 +16,7 @@ from pydantic import Field
 
 from polymind.core.logger import Logger
 from polymind.core.message import Message
-from polymind.core.tool import (BaseTool, CodeGenerationTool, Embedder,
-                                LLMTool, Param)
+from polymind.core.tool import BaseTool, CodeGenerationTool, Embedder, LLMTool, Param
 from polymind.core_tools.rest_api_tool import RestAPITool
 
 

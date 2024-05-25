@@ -30,6 +30,14 @@ jobs:
       run: |
         poetry install
 
+    - name: Install dependencies including optional dependencies
+      run: |
+        # Extract all optional dependencies (extras) from pyproject.toml
+        EXTRAS=$(grep -oP '\[\[?tool.poetry.extras\]\]?\n\K([a-zA-Z0-9_]+)' pyproject.toml | paste -sd "," -)
+        
+        # Install all dependencies including the optional ones
+        poetry install --extras "$EXTRAS"
+
     - name: Install pytest
       run: |
         pip install pytest
