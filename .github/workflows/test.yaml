@@ -35,9 +35,7 @@ jobs:
         python -m pip install toml
         EXTRAS=$(python .github/workflows/extract_extra_deps.py)
         echo "EXTRAS=$EXTRAS"
-        EXTRAS_FLAGS=$(echo $EXTRAS | sed 's/\([^,]\+\)/--extras \1/g')
-        echo "EXTRAS_FLAGS=$EXTRAS_FLAGS"
-        poetry install $EXTRAS_FLAGS
+        poetry install $EXTRAS
 
     - name: Install pytest
       run: |
