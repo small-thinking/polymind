@@ -11,8 +11,9 @@ from unittest.mock import AsyncMock
 import pytest
 from pydantic import ValidationError
 
+from polymind.core.codegen import CodeGenerationTool
 from polymind.core.message import Message
-from polymind.core.tool import BaseTool, CodeGenerationTool, Param, ToolManager
+from polymind.core.tool import BaseTool, Param, ToolManager
 
 
 class TestParam:
