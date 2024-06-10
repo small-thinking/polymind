@@ -10,7 +10,7 @@ import textwrap
 from abc import ABC, abstractmethod
 from typing import List
 
-from dspy import InputField, Module, OutputField, Signature
+# from dspy import InputField, Module, OutputField, Signature
 from pydantic import Field
 
 from polymind.core.logger import Logger
