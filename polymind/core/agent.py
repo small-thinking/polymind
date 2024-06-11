@@ -5,8 +5,7 @@ from pydantic import BaseModel, Field
 
 from polymind.core.logger import Logger
 from polymind.core.message import Message
-from polymind.core.tool import BaseTool
-from polymind.core_tools.llm_tool import LLMTool
+from polymind.core.tool import BaseTool, LLMTool
 
 
 class ThoughtProcess(BaseModel, ABC):
