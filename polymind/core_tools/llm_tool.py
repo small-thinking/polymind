@@ -7,11 +7,8 @@ import datetime
 import os
 from typing import List
 
-try:
-    import anthropic
-    from openai import AsyncOpenAI
-except ImportError:
-    print("Please install the OpenAI and anthropic package with command:", "poetry install -E openai -E anthropic")
+import anthropic
+from openai import AsyncOpenAI
 from pydantic import Field
 
 from polymind.core.codegen import CodeGenerationTool
