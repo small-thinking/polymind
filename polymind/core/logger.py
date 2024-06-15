@@ -2,7 +2,7 @@ import inspect
 import logging
 import os
 from enum import Enum
-from typing import Any
+from typing import Optional
 
 from colorama import Fore, ansi
 from dotenv import load_dotenv
@@ -33,20 +33,26 @@ class Logger:
         def __gt__(self, other):
             return self.value > other.value
 
+        def __str__(self) -> str:
+            return self.name
+
+        def __repr__(self) -> str:
+            return self.name
+
     def __new__(cls, *args, **kwargs):
         if cls._instance is None:
             cls._instance = super().__new__(cls)
         return cls._instance
 
-    def __init__(self, logger_name: str, verbose: bool = True, level: Any = logging.INFO):
+    def __init__(self, logger_name: str, verbose: bool = True, level: Optional[LoggingLevel] = None):
         if not hasattr(self, "logger"):
             load_dotenv(override=True)
-            self.logging_level = Logger.LoggingLevel[os.getenv("LOGGING_LEVEL", "TOOL")]
+            self.logging_level = level if level else Logger.LoggingLevel[os.getenv("LOGGING_LEVEL", "TOOL")]
             self.logger = logging.getLogger(logger_name)
-            self.logger.setLevel(level=level)
+            self.logger.setLevel(level=self.logging_level.value)
             self.formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s (%(filename)s:%(lineno)d)")
             self.console_handler = logging.StreamHandler()
-            self.console_handler.setLevel(level=level)
+            self.console_handler.setLevel(level=self.logging_level.value)
             self.console_handler.setFormatter(self.formatter)
             self.logger.addHandler(self.console_handler)
 
