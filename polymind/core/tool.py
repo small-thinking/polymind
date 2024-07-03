@@ -257,7 +257,14 @@ class AbstractTool(BaseModel, ABC):
                         f" but is '{type(output_message.content[param.name])}'."
                     )
 
-    @abstractmethod
+
+class BaseTool(AbstractTool):
+    async def __call__(self, input: Message) -> Message:
+        self._validate_input_message(input)
+        output_message = await self._execute(input)
+        self._validate_output_message(output_message)
+        return output_message
+
     async def _execute(self, input: Message) -> Message:
         """Execute the tool and return the result.
         The derived class must implement this method to define the behavior of the tool.
@@ -269,14 +276,6 @@ class AbstractTool(BaseModel, ABC):
             Message: The result of the tool carried in a message.
         """
         pass
-
-
-class BaseTool(AbstractTool):
-    async def __call__(self, input: Message) -> Message:
-        self._validate_input_message(input)
-        output_message = await self._execute(input)
-        self._validate_output_message(output_message)
-        return output_message
 
 
 class OptimizableBaseTool(AbstractTool, dspy.Predict):
