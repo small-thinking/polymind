@@ -13,7 +13,8 @@ from pydantic import ValidationError
 
 from polymind.core.codegen import CodeGenerationTool
 from polymind.core.message import Message
-from polymind.core.tool import BaseTool, OptimizableBaseTool, Param, ToolManager
+from polymind.core.tool import (BaseTool, OptimizableBaseTool, Param,
+                                ToolManager)
 
 
 class TestParam:
