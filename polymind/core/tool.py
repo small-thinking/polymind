@@ -9,6 +9,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Mapping, Sequence
 from typing import Any, Dict, List, Union, get_origin
 
+import dspy
 from dotenv import load_dotenv
 from dspy import Module, Predict, Retrieve
 from pydantic import BaseModel, Field, field_validator
@@ -95,7 +96,7 @@ class Param(BaseModel):
         )
 
 
-class BaseTool(BaseModel, ABC):
+class AbstractTool(BaseModel, ABC):
     """The base class of the tool.
     In an agent system, a tool is an object that can be used to perform a task.
     For example, search for information from the internet, query a database,
@@ -138,33 +139,14 @@ class BaseTool(BaseModel, ABC):
     def get_descriptions(self) -> List[str]:
         return self.descriptions
 
-    async def __call__(self, input: Message) -> Message:
-        """Makes the instance callable, delegating to the execute method.
-        This allows the instance to be used as a callable object, simplifying the syntax for executing the tool.
-
-        Args:
-            input (Message): The input message to the tool.
-
-        Returns:
-            Message: The output message from the tool.
-        """
-        self._validate_input_message(input)
-        output_message = await self._execute(input)
-        self._validate_output_message(output_message)
-        return output_message
-
     def get_spec(self) -> str:
         """Return the input and output specification of the tool.
 
         Returns:
             Tuple[List[Param], List[Param]]: The input and output specification of the tool.
         """
-        input_json_obj = []
-        for param in self.input_spec():
-            input_json_obj.append(param.to_json_obj())
-        output_json_obj = []
-        for param in self.output_spec():
-            output_json_obj.append(param.to_json_obj())
+        input_json_obj = [param.to_json_obj() for param in self.input_spec()]
+        output_json_obj = [param.to_json_obj() for param in self.output_spec()]
         spec_json_obj = {
             "input_message": input_json_obj,
             "output_message": output_json_obj,
@@ -223,10 +205,8 @@ class BaseTool(BaseModel, ABC):
         for param in input_spec:
             if param.name not in input_message.content and param.required:
                 raise ValueError(f"The input message must contain the field '{param.name}'.")
-            if param.name in input_message.content and param.required:
-                # Extract the base type for generics (e.g., List or Dict) or use the type directly
+            if param.name in input_message.content:
                 base_type = get_origin(eval(param.type)) if get_origin(eval(param.type)) else eval(param.type)
-                # Map the typing module types to their concrete types for isinstance checks
                 type_mapping = {
                     Sequence: list,  # Assuming to treat any sequence as a list
                     Mapping: dict,  # Assuming to treat any mapping as a dict
@@ -264,8 +244,7 @@ class BaseTool(BaseModel, ABC):
         for param in output_spec:
             if param.name not in output_message.content and param.required:
                 raise ValueError(f"The output message must contain the field '{param.name}'.")
-            if param.name in output_message.content and param.required:
-                # Extract the base type for generics (e.g., List or Dict) or use the type directly
+            if param.name in output_message.content:
                 base_type = get_origin(eval(param.type)) if get_origin(eval(param.type)) else eval(param.type)
                 type_mapping = {
                     Sequence: list,  # Assuming to treat any sequence as a list
@@ -278,13 +257,40 @@ class BaseTool(BaseModel, ABC):
                         f" but is '{type(output_message.content[param.name])}'."
                     )
 
-    @abstractmethod
+
+class BaseTool(AbstractTool):
+    async def __call__(self, input: Message) -> Message:
+        self._validate_input_message(input)
+        output_message = await self._execute(input)
+        self._validate_output_message(output_message)
+        return output_message
+
     async def _execute(self, input: Message) -> Message:
         """Execute the tool and return the result.
         The derived class must implement this method to define the behavior of the tool.
 
         Args:
             input (Message): The input to the tool carried in a message.
+
+        Returns:
+            Message: The result of the tool carried in a message.
+        """
+        pass
+
+
+class OptimizableBaseTool(AbstractTool, dspy.Predict):
+    def __call__(self, input: Message) -> Message:
+        self._validate_input_message(input)
+        output_message = self.forward(**input.content)
+        self._validate_output_message(output_message)
+        return output_message
+
+    def forward(self, **kwargs) -> Message:
+        """Execute the tool and return the result synchronously.
+        The derived class must implement this method to define the behavior of the tool.
+
+        Args:
+            **kwargs: The input parameters for the tool.
 
         Returns:
             Message: The result of the tool carried in a message.
