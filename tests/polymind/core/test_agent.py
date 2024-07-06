@@ -51,16 +51,12 @@ class TestAgent:
     async def test_process_simple_message(self):
         # Create a minimal Agent instance for testing
         reasoner = MockLLMTool(llm_name="mock_llm", max_tokens=1500, temperature=0.7)
-        tool_manager = MockToolManager()
-        tool_retriever = MockRetrieveTool()
 
         agent = Agent(
             agent_name="TestAgent",
             persona="Tester",
             tools={},
             reasoner=reasoner,
-            tool_manager=tool_manager,
-            tool_retriever=tool_retriever,
             memory=MockMemory(),
         )
 
@@ -77,16 +73,12 @@ class TestAgent:
     async def test_agent_with_invalid_input(self):
         # Create a minimal Agent instance for testing
         reasoner = MockLLMTool(llm_name="mock_llm", max_tokens=1500, temperature=0.7)
-        tool_manager = MockToolManager()
-        tool_retriever = MockRetrieveTool()
 
         agent = Agent(
             agent_name="TestAgent",
             persona="Tester",
             tools={},
             reasoner=reasoner,
-            tool_manager=tool_manager,
-            tool_retriever=tool_retriever,
             memory=MockMemory(),
         )
 

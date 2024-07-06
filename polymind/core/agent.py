@@ -30,7 +30,7 @@ class Agent(BaseModel):
         input.content["persona"] = self.persona
 
     async def _execute(self, input: Message) -> Message:
-        """Execute the thought process and return the result.
+        """Execute the agent and return the result.
         This method defines the behavior of the agent's thought process.
 
         Args:
@@ -43,6 +43,8 @@ class Agent(BaseModel):
             self._logger.thought_process_log(
                 f"[{self.agent_name}], your requirement is: {input.content['requirement']}"
             )
+        else:
+            raise ValueError("The input message must contain the 'requirement' field.")
 
         # Add logic for executing the thought process using tools and reasoner.
         # This is a placeholder implementation.
