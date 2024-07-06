@@ -505,6 +505,129 @@ class LLMTool(BaseTool, ABC):
         return response_message
 
 
+class SyncLLMTool(OptimizableBaseTool):
+    """Synchronous LLM tool defines the basic properties of the language model tools.
+    This tool will get the prompt from "input" and return the response to "output".
+    """
+
+    llm_name: str = Field(..., description="The name of the model.")
+    max_tokens: int = Field(..., description="The maximum number of tokens for the chat.")
+    temperature: float = Field(default=1.0, description="The temperature for the chat.")
+    top_p: float = Field(
+        default=0.1,
+        description="The top p for the chat. Top p is used to prevent the model from generating unlikely words.",
+    )
+    stop: str = Field(default=None, description="The stop sequence for the chat.")
+
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self._logger = Logger(__file__)
+        self._set_client()
+
+    def _set_client(self):
+        """Set the client for the language model."""
+        # Implement the synchronous client setup here
+        pass
+
+    def input_spec(self) -> List[Param]:
+        return [
+            Param(
+                name="input",
+                type="str",
+                required=True,
+                description="The prompt for the chat.",
+                example="hello, how are you?",
+            ),
+            Param(
+                name="system_prompt",
+                type="str",
+                required=False,
+                example="You are a helpful AI assistant.",
+                description="The system prompt for the chat.",
+            ),
+            Param(
+                name="max_tokens",
+                type="int",
+                required=False,
+                example="1500",
+                description="The maximum number of tokens for the chat.",
+            ),
+            Param(
+                name="temperature",
+                type="float",
+                required=False,
+                example="0.7",
+                description="The temperature for the chat.",
+            ),
+            Param(
+                name="top_p",
+                type="float",
+                required=False,
+                example="0.1",
+                description="The top p for the chat.",
+            ),
+        ]
+
+    def output_spec(self) -> List[Param]:
+        return [
+            Param(
+                name="output",
+                type="str",
+                required=True,
+                description="The response from the chat.",
+            ),
+        ]
+
+    def _invoke(self, input: Message) -> Message:
+        """Invoke the language model with the input message and return the response message.
+
+        Args:
+            input (Message): The input message to the language model. The message should contain the below keys:
+                - prompt: The prompt for the chat.
+                - system_prompt: The system prompt for the chat.
+                - max_tokens: The maximum number of tokens for the chat.
+                - temperature: The temperature for the chat.
+                - top_p: The top p for the chat.
+                - stop: The stop sequence for the chat.
+
+        Returns:
+            Message: The response message from the language model. The actual content is in the "output" field.
+        """
+        # Implement the synchronous invocation of the language model here
+        # This is a placeholder implementation
+        return Message(content={"output": "Synchronous LLM response"})
+
+    def forward(self, **kwargs) -> Message:
+        """Execute the tool and return the result synchronously."""
+        current_datetime = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        # Validate and prepare input
+        prompt = kwargs.get("input", "")
+        system_prompt = kwargs.get("system_prompt", "")
+        if not prompt:
+            raise ValueError("Prompt in the field 'input' cannot be empty.")
+
+        input_message = Message(
+            content={
+                "input": prompt,
+                "system_prompt": system_prompt,
+                "max_tokens": kwargs.get("max_tokens", self.max_tokens),
+                "temperature": kwargs.get("temperature", self.temperature),
+                "top_p": kwargs.get("top_p", self.top_p),
+                "datetime": current_datetime,
+            }
+        )
+
+        if self.stop:
+            input_message.content["stop"] = self.stop
+
+        response_message = self._invoke(input_message)
+        if "output" not in response_message.content:
+            raise ValueError("The response message must contain the 'output' key.")
+
+        return response_message
+
+
 class CombinedMeta(type(Module), type(BaseTool)):
     pass
 
