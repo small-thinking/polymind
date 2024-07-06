@@ -1,36 +1,26 @@
 import json
 import re
 import time
-from typing import Dict, List
+from typing import Dict, List, Union
 
-from pydantic import Field
+from pydantic import BaseModel, Field
 
-from polymind.core.agent import Agent, ThoughtProcess
 from polymind.core.logger import Logger
 from polymind.core.memory import LinearMemory, Memory
 from polymind.core.message import Message
 from polymind.core.task import AtomTask, SequentialTask
-from polymind.core.tool import RetrieveTool, ToolManager
-from polymind.core_tools.llm_tool import LLMTool
+from polymind.core.tool import BaseTool, LLMTool, RetrieveTool, ToolManager
 
 
-class ChainOfTasks(ThoughtProcess):
-    """ChainOfTasks is a class that tries to solve a problem by formulating the solution as a chain of tasks.
-    It is similar to Chain-of-Thought prompting, but operates at a higher level.
-    Chain-of-Thought makes the LLM to conduct a multi-step reasoning in one inference,
-    while ChainOfTasks breaks down the problem into a series of tasks and executes them one by one.
-
-    Note: The input to this thought process must contain a 'requirement' field.
-    """
-
-    thought_process_name: str = "ChainOfTasks"
-    tasks_list: SequentialTask = Field(default=None, description="The list of tasks to execute in sequence.")
-    memory: Memory = Field(default=LinearMemory(), description="The memory to store the intermediate results.")
-
+class Agent(BaseModel):
+    agent_name: str
+    # Persona of the agent indicates the role of the agent.
+    persona: str
+    tools: Dict[str, BaseTool] = Field(default=None, description="The tools that the agent can use.")
     reasoner: LLMTool = Field(default=None, description="The reasoner that will be used in the thought process.")
     retries: int = Field(default=3, description="The number of retries if the task fails.")
     retry_interval: int = Field(default=5, description="The interval between retries in seconds.")
-
+    memory: Memory = Field(default=LinearMemory(), description="The memory to store the intermediate results.")
     problem_decomposition_prompt: str = """
         You need to breakdown a complex problem into a series of tasks.
         Please read the requirement carefully and think step-by-step before answering the question.
@@ -71,25 +61,27 @@ class ChainOfTasks(ThoughtProcess):
         </example_decomposition>
     """
 
-    def __init__(
-        self,
-        reasoner: LLMTool,
-        tool_manager: ToolManager,
-        tool_retriever: RetrieveTool,
-        **kwargs,
-    ):
+    def __init__(self, reasoner: LLMTool, tool_manager: ToolManager, tool_retriever: RetrieveTool, **kwargs):
         super().__init__(**kwargs)
         self._logger = Logger(__file__)
         self.reasoner = reasoner
         self._tool_manager = tool_manager
         self._tool_retriever = tool_retriever
-        self.memory = LinearMemory()
         if not self._tool_manager:
             raise ValueError("Tool manager is not provided.")
         if not self._tool_retriever:
             raise ValueError("Tool retriever is not provided.")
 
-    async def _breakdown_problem(self, input: Message) -> List[Dict[str, str]]:
+    def __str__(self):
+        return self.agent_name
+
+    def _input_preprocess(self, input: Message) -> None:
+        """Preprocess the input message before the agent starts working.
+        Now now the only thing to do is to add the persona to the input message.
+        """
+        input.content["persona"] = self.persona
+
+    async def _breakdown_problem(self, input: Message) -> List[Dict[str, Union[str, Dict[str, str]]]]:
         """Break down the problem into a series of tasks."""
         if "requirement" not in input.content:
             raise ValueError("The input message must contain the 'requirement' field.")
@@ -137,7 +129,7 @@ class ChainOfTasks(ThoughtProcess):
         self._logger.error(error_message)
         raise ValueError(error_message)
 
-    def _construct_tasks(self, tasks_meta: List[Dict[str, str]]) -> SequentialTask:
+    def _construct_tasks(self, tasks_meta: List[Dict[str, Union[str, Dict[str, str]]]]) -> SequentialTask:
         """Construct the tasks from the metadata."""
         tasks = []
         for idx, task_meta in enumerate(tasks_meta):
@@ -153,7 +145,7 @@ class ChainOfTasks(ThoughtProcess):
             self._logger.task_log(f"Task {task_id}: {task_meta['objective']} constructed.")
         return SequentialTask(tasks=tasks, memory=self.memory)
 
-    async def _execute(self, agent: Agent, input: Message) -> Message:
+    async def _execute(self, input: Message) -> Message:
         """Use reasoner to breakdown the problem into a series of tasks and execute them in order."""
         tasks_meta = await self._breakdown_problem(input)
         sequence_tasks = self._construct_tasks(tasks_meta)
@@ -164,3 +156,16 @@ class ChainOfTasks(ThoughtProcess):
             raise ValueError("The response message must contain the 'output' key.")
         response_message = Message(content={"output": task_message.content["output"]})
         return response_message
+
+    async def __call__(self, input: Message) -> Message:
+        """Enable the agent to start working.
+        The actual processing is driven by the agent itself.
+
+        Args:
+            input (Message): The input message to the agent.
+
+        Returns:
+            Message: The output message from the agent.
+        """
+        self._input_preprocess(input=input)
+        return await self._execute(input=input)

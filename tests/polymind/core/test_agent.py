@@ -1,51 +1,100 @@
-"""This module contains the test cases for the ThoughtProcess class.
+"""This module contains the test cases for the Agent class.
 Run the test with the following command:
-    poetry run pytest tests/polymind/core/test_thought_process.py
+    poetry run pytest tests/polymind/core/test_agent.py
 """
+
+from typing import List
 
 import pytest
 
-from polymind.core.agent import Agent, ThoughtProcess
+from polymind.core.agent import Agent
+from polymind.core.memory import LinearMemory
 from polymind.core.message import Message
+from polymind.core.tool import BaseTool, LLMTool, RetrieveTool, ToolManager
 
 
-class MockThoughtProcess(ThoughtProcess):
-    async def _execute(self, agent: Agent, input: Message) -> Message:
-        # Implement a simple test logic, for example, just echo back the input with some modification
-        modified_content = {"processed": True, **input.content}
-        return Message(content=modified_content)
+# Mock classes to simulate dependencies
+class MockLLMTool(LLMTool):
+
+    tool_name: str = "mock_tool"
+    llm_name: str = "mock_llm"
+    max_tokens: int = 1500
+    temperature: float = 0.7
+    descriptions: List[str] = ["Mock LLM tool for testing."]
+
+    async def _invoke(self, input: Message) -> Message:
+        # Mock response for testing
+        response_content = {
+            "output": '{"steps": [{"objective": "mock objective", "input": null, "output": {"name": "result", "type": "str"}}]}'
+        }
+        return Message(content=response_content)
+
+    def _set_client(self):
+        # Mock client setup
+        pass
 
 
-class TestMockThoughtProcess:
+class MockToolManager(ToolManager):
+    pass
+
+
+class MockRetrieveTool(RetrieveTool):
+    pass
+
+
+class MockMemory(LinearMemory):
+    pass
+
+
+class TestAgent:
     @pytest.mark.asyncio
     async def test_process_simple_message(self):
-        # Creating a minimal Agent instance for testing
-        agent = Agent(agent_name="TestAgent", persona="Tester", tools={})
+        # Create a minimal Agent instance for testing
+        reasoner = MockLLMTool(llm_name="mock_llm", max_tokens=1500, temperature=0.7)
+        tool_manager = MockToolManager()
+        tool_retriever = MockRetrieveTool()
 
-        # Instantiate MockThoughtProcess and associate it with the agent
-        thought_process = MockThoughtProcess(thought_process_name="Mock", tools={})
-        agent.set_thought_process(thought_process)
+        agent = Agent(
+            agent_name="TestAgent",
+            persona="Tester",
+            tools={},
+            reasoner=reasoner,
+            tool_manager=tool_manager,
+            tool_retriever=tool_retriever,
+            memory=MockMemory(),
+        )
 
         # Prepare the input message
-        input_message = Message(content={"hello": "world"})
+        input_message = Message(content={"requirement": "test requirement"})
 
-        # Now, pass both the input_message and agent to the thought_process call
-        output_message = await thought_process(agent=agent, input=input_message)
+        # Now, pass the input_message to the agent
+        output_message = await agent(input_message)
 
         # Assertions to verify the behavior
-        assert output_message.content.get("processed") == True
-        assert output_message.content.get("hello") == "world"
+        assert output_message.content.get("output") == "Processed requirement: test requirement"
 
     @pytest.mark.asyncio
-    async def test_agent_without_thought_process_error(self):
-        # Create an Agent instance without setting a thought_process
-        agent = Agent(agent_name="TestAgent", persona="Tester", tools={})
+    async def test_agent_with_invalid_input(self):
+        # Create a minimal Agent instance for testing
+        reasoner = MockLLMTool(llm_name="mock_llm", max_tokens=1500, temperature=0.7)
+        tool_manager = MockToolManager()
+        tool_retriever = MockRetrieveTool()
 
-        # Prepare the input message
+        agent = Agent(
+            agent_name="TestAgent",
+            persona="Tester",
+            tools={},
+            reasoner=reasoner,
+            tool_manager=tool_manager,
+            tool_retriever=tool_retriever,
+            memory=MockMemory(),
+        )
+
+        # Prepare the input message without the required 'requirement' field
         input_message = Message(content={"hello": "world"})
 
         # Attempt to process the message and expect a ValueError
         with pytest.raises(ValueError) as exc_info:
             await agent(input_message)
 
-        assert "thought process of the agent needs to be hooked first" in str(exc_info.value)
+        assert "The input message must contain the 'requirement' field." in str(exc_info.value)
