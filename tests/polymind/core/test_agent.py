@@ -7,7 +7,7 @@ from typing import List
 
 import pytest
 
-from polymind.core.agent import Agent
+from polymind.core.agent import Agent, AsyncAgent
 from polymind.core.memory import LinearMemory
 from polymind.core.message import Message
 from polymind.core.tool import BaseTool, LLMTool, RetrieveTool, ToolManager
@@ -52,7 +52,7 @@ class TestAgent:
         # Create a minimal Agent instance for testing
         reasoner = MockLLMTool(llm_name="mock_llm", max_tokens=1500, temperature=0.7)
 
-        agent = Agent(
+        agent = AsyncAgent(
             agent_name="TestAgent",
             persona="Tester",
             tools={},
@@ -74,7 +74,7 @@ class TestAgent:
         # Create a minimal Agent instance for testing
         reasoner = MockLLMTool(llm_name="mock_llm", max_tokens=1500, temperature=0.7)
 
-        agent = Agent(
+        agent = AsyncAgent(
             agent_name="TestAgent",
             persona="Tester",
             tools={},
