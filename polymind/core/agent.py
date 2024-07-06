@@ -5,7 +5,8 @@ from pydantic import BaseModel, Field
 
 from polymind.core.logger import Logger
 from polymind.core.message import Message
-from polymind.core.tool import BaseTool, LLMTool, OptimizableBaseTool, SyncLLMTool
+from polymind.core.tool import (BaseTool, LLMTool, OptimizableBaseTool,
+                                SyncLLMTool)
 
 
 class AbstractAgent(BaseModel, ABC):
