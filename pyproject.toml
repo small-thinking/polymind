@@ -23,6 +23,7 @@ anthropic = { version = "^0.25.6", optional = true }
 pymilvus = { version = "2.3.7", optional = true }
 dspy-ai = "^2.4.9"
 rdflib = "^7.0.0"
+flake8 = "^7.1.0"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.2.0"
@@ -32,6 +33,7 @@ aioresponses = "^0.7.6"
 pytest = "^8.1.1"
 pytest-asyncio = "^0.23.5.post1"
 vulture = "^2.11"
+flake8-pyproject = "^1.2.3"
 
 [tool.poetry.extras]
 openai = ["openai"]
@@ -48,8 +50,6 @@ skip = ["__init__.py"]
 max-line-length = 120
 exclude = ["__init__.py"]
 ignore = ["Q000"]
-[tool.flake8.per-file-ignores]
-"__init__.py" = ["F401"]
 
 [build-system]
 requires = ["poetry-core"]
