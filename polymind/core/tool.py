@@ -96,7 +96,7 @@ class Param(BaseModel):
         )
 
 
-class AbstractTool(BaseModel, ABC):
+class AbstractTool(BaseModel):
     """The base class of the tool.
     In an agent system, a tool is an object that can be used to perform a task.
     For example, search for information from the internet, query a database,
