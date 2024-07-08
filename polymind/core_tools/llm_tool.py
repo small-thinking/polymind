@@ -253,7 +253,7 @@ class AnthropicClaudeTool(LLMTool):
         "arbitrary_types_allowed": True,  # Allow arbitrary types
     }
     tool_name: str = "anthropic-claude"
-    model_name: str = Field(default="claude-3-opus-20240229", description="The name of the Claude model.")
+    llm_name: str = Field(default="claude-3-5-sonnet-20240620", description="The name of the Claude model.")
     descriptions: List[str] = [
         "This tool is used to chat with Anthropic's Claude language model.",
         "This tool can be used as the orchestrator to control the conversation and problem solving.",
@@ -336,7 +336,7 @@ class AnthropicClaudeTool(LLMTool):
             {"role": "user", "content": prompt},
         ]
         response = self.client.messages.create(
-            model=self.model_name,
+            model=self.llm_name,
             max_tokens=max_tokens,
             temperature=temperature,
             messages=messages,

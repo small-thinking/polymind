@@ -1,4 +1,5 @@
 import json
+import os
 import re
 from typing import Any, Dict, List, get_args, get_origin
 
@@ -91,3 +92,13 @@ def json_text_to_tool_param(json_text: str, tool: BaseTool, logger: Logger = Non
             )
 
     return tool_param_dict_typed
+
+
+def get_repo_root_path():
+    # Check whether the pyproject.toml file exists in the current directory
+    cur_path = os.getcwd()
+    while cur_path != "/":
+        if "pyproject.toml" in os.listdir(cur_path):
+            return cur_path
+        cur_path = os.path.dirname(cur_path)
+    raise FileNotFoundError("Repository root not found")
