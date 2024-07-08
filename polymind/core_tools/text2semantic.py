@@ -2,21 +2,23 @@
 """
 
 import re
-from typing import List
+from typing import List, Tuple
 
-import aiofiles
+from pydantic import Field
 from rdflib import Graph
 from rdflib.plugins.sparql.processor import Result
 
 from polymind.core.logger import Logger
 from polymind.core.message import Message
-from polymind.core.tool import BaseTool, Param
-from polymind.core_tools.llm_tool import AnthropicClaudeTool, OpenAIChatTool
+from polymind.core.tool import BaseTool, LLMTool, Param
 
 
 class SemanticWebQueryTool(BaseTool):
 
-    def __init__(self, tool_name: str = "semantic-web-query", *args, **kwargs):
+    ontology_path: str = Field(..., description="Path to the JSON-LD ontology file.")
+    data_path: str = Field(..., description="Path to the N-Triples data file.")
+
+    def __init__(self, llm_tool: LLMTool, tool_name: str = "semantic-web-query", *args, **kwargs):
         descriptions = [
             "Run SPARQL queries on a graph created from an ontology and data files.",
             "Query RDF graphs using SPARQL.",
@@ -24,9 +26,8 @@ class SemanticWebQueryTool(BaseTool):
         ]
         super().__init__(tool_name=tool_name, descriptions=descriptions, *args, **kwargs)
         self._logger = Logger(__name__)
-        self._llm_tool = OpenAIChatTool()
-        # self._llm_tool = AnthropicClaudeTool()
-        self._sparqk_gen_prompt_template = """
+        self._llm_tool = llm_tool
+        self._sparql_gen_prompt_template = """
             # SPARQL Query Generation
             Your task is to generate SPARQL queries based on natural language requests.
             You will be provided with information about the ontology and data structure,
@@ -93,6 +94,12 @@ class SemanticWebQueryTool(BaseTool):
             
             Please put the SPARQL query in a blob wrapped in ```data```.
         """
+        # Load the semantic web data as separate graphs
+        self._ontology_graph, self._data_graph = self.create_graphs(
+            ontology_path=self.ontology_path, data_path=self.data_path
+        )
+        # Create a combined graph for querying
+        self._combined_graph = self._ontology_graph + self._data_graph
 
     def input_spec(self) -> List[Param]:
         return [
@@ -101,10 +108,10 @@ class SemanticWebQueryTool(BaseTool):
 
     def output_spec(self) -> List[Param]:
         return [
-            Param(name="results", type="Result", required=True, description="Query results."),
+            Param(name="results", type="List[str]", required=True, description="Query results."),
         ]
 
-    async def load_jsonld(self, file_path: str) -> str:
+    def load_jsonld(self, file_path: str) -> str:
         """
         Asynchronously reads a JSON-LD file and returns its content as a string.
 
@@ -114,11 +121,11 @@ class SemanticWebQueryTool(BaseTool):
         Returns:
             str: Content of the JSON-LD file as a string.
         """
-        async with aiofiles.open(file_path, "r") as f:
-            content = await f.read()
+        with open(file_path, "r") as f:
+            content = f.read()
         return content
 
-    async def load_nt(self, file_path: str) -> str:
+    def load_nt(self, file_path: str) -> str:
         """
         Asynchronously reads an N-Triples file and returns its content as a string.
 
@@ -128,47 +135,47 @@ class SemanticWebQueryTool(BaseTool):
         Returns:
             str: Content of the N-Triples file as a string.
         """
-        async with aiofiles.open(file_path, "r") as f:
-            content = await f.read()
+        with open(file_path, "r") as f:
+            content = f.read()
         return content
 
-    async def create_graph(self, ontology_path: str, data_path: str) -> Graph:
+    def create_graphs(self, ontology_path: str, data_path: str) -> Tuple[Graph, Graph]:
         """
-        Creates an RDF graph by loading ontology from a JSON-LD file and data from an N-Triples file.
+        Creates separate RDF graphs for ontology and data.
 
         Args:
             ontology_path (str): Path to the JSON-LD ontology file.
             data_path (str): Path to the N-Triples data file.
 
         Returns:
-            Graph: The RDF graph containing the ontology
+            Tuple[Graph, Graph]: The ontology graph and the data graph.
         """
-        g = Graph()
+        ontology_graph = Graph()
+        data_graph = Graph()
 
         # Load ontology
-        ontology_data = await self.load_jsonld(ontology_path)
-        g.parse(data=ontology_data, format="json-ld")
+        ontology_data = self.load_jsonld(ontology_path)
+        ontology_graph.parse(data=ontology_data, format="json-ld")
 
         # Load data
-        nt_data = await self.load_nt(data_path)
-        g.parse(data=nt_data, format="nt")
+        nt_data = self.load_nt(data_path)
+        data_graph.parse(data=nt_data, format="nt")
 
-        return g
+        return ontology_graph, data_graph
 
-    async def ask_graph(self, graph: Graph, nlp_query: str) -> Result:
+    async def ask_graph(self, nlp_query: str) -> Result:
         """
-        Executes an NLP query on the given RDF graph and returns the results.
+        Executes an NLP query on the combined RDF graph and returns the results.
 
         Args:
-            graph (Graph): The RDF graph to query.
             nlp_query (str): The NLP query string.
 
         Returns:
             Result: Query results.
         """
         # Convert NLP query to SPARQL query using LLM
-        ontology_str = graph.serialize(format="json-ld")
-        sparql_gen_prompt = self._sparqk_gen_prompt_template.format(nlp_query=nlp_query, ontology_str=ontology_str)
+        ontology_str = self._ontology_graph.serialize(format="json-ld")
+        sparql_gen_prompt = self._sparql_gen_prompt_template.format(nlp_query=nlp_query, ontology_str=ontology_str)
         sparql_message = Message(content={"input": sparql_gen_prompt})
         sparql_response = await self._llm_tool(sparql_message)
         sparql_response_str = sparql_response.content["output"]
@@ -179,17 +186,28 @@ class SemanticWebQueryTool(BaseTool):
         else:
             raise ValueError(f"SPARQL query generation failed. Response:\n\n{sparql_response_str}")
 
-        return self.query_graph(graph=graph, query=sparql_query)
+        return self.query_graph(query=sparql_query)
 
-    def query_graph(self, graph: Graph, query: str) -> Result:
+    def query_graph(self, query: str) -> str:
         """
-        Executes a SPARQL query on the given RDF graph and returns the results.
+        Executes a SPARQL query on the combined RDF graph and returns the results.
 
         Args:
-            graph (Graph): The RDF graph to query.
             query (str): The SPARQL query string.
 
         Returns:
-            Result: Query results.
+            str: Query results.
         """
-        return graph.query(query)
+        results = self._combined_graph.query(query)
+        result_list = []
+
+        for row in results:
+            row_str = ", ".join([str(value) for value in row])
+            result_list.append(row_str)
+
+        return result_list
+
+    async def _execute(self, input: Message) -> Message:
+        nlp_query = input.content["nlp_query"]
+        results = await self.ask_graph(nlp_query=nlp_query)
+        return Message(content={"results": results})
