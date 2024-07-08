@@ -32,12 +32,13 @@ class SemanticWebQueryTool(BaseTool):
             Your task is to generate SPARQL queries based on natural language requests.
             You will be provided with information about the ontology and data structure,
             followed by examples of natural language requests and their corresponding SPARQL queries.
-            Then, you will be given a new natural language request for which you should generate the appropriate SPARQL query.
-            
+            Then, you will be given a new natural language request for which you should
+            generate the appropriate SPARQL query.
+
             # Ontology and Data Structure
             The ontology includes the following main classes and properties:
             {ontology_str}
-            
+
             # Examples
             ## Example 1:
             ### Natural Language Request: "List all items and their names."
@@ -50,7 +51,7 @@ class SemanticWebQueryTool(BaseTool):
                 ?item sw:name ?name .
             }}
             ```
-            
+
             ## Example 2:
             ### Natural Language Request: "Find all items in the 'Sports' genre, including sub-genres."
             ### SPARQL query:
@@ -62,16 +63,16 @@ class SemanticWebQueryTool(BaseTool):
             WHERE {{
                 ?item sw:name ?itemName ;
                         sw:hasGenre ?itemGenre .
-                
+
                 ?itemGenre rdf:type sw:Genre .
                 ?itemGenre sw:name ?genreName .
-                
+
                 ?itemGenre (sw:parentGenre)* ?genre .
-                
+
                 FILTER(?genre = <http://sw.org/genre/Sports>)
             }}
             ```
-            
+
             ## Example 3:
             ### Natural Language Request: "Show me the names of all genres and their parent genres."
             ### SPARQL query:
@@ -87,11 +88,11 @@ class SemanticWebQueryTool(BaseTool):
                 }}
             }}
             ```
-            
+
             # Your Task
             Now, please generate a SPARQL query for the following natural language request:
             {nlp_query}
-            
+
             Please put the SPARQL query in a blob wrapped in ```data```.
         """
         # Load the semantic web data as separate graphs

@@ -2,17 +2,14 @@ import json
 import re
 from typing import Any, Dict, List
 
-from pydantic import Field
-from rdflib import Graph, Literal, Namespace, URIRef
-from rdflib.namespace import RDF, RDFS
-
 from polymind.core.tool import BaseTool, LLMTool, Message, Param
 from polymind.core.utils import Logger
 
 
 class SemanticWebIndexer(BaseTool):
     """The SemanticWebIndexer tool processes semantic web data based on a description and input data.
-    It is able to generate the ontology and semantic web data in various formats, based on the input data and description.
+    It is able to generate the ontology and semantic web data in various formats,
+    based on the input data and description.
     """
 
     descriptions: List[str] = [
@@ -33,22 +30,22 @@ class SemanticWebIndexer(BaseTool):
         self._ontology_gen_propmt_template = """
             Your task is to generate an ontology based on the given description.
             The output format of the ontology should be {ontology_data_format}.
-            
+
             The description is as below. If not otherwise specified, the namespace will be {namespace}:
             {ontology_description}
-            
+
             Please generate the ontology and provide the output in a blob wrapped in ```data```.
         """
         self._data_gen_prompt_template = """
             Your task is to convert the given data to semantic web format based on the given ontology.
             The output format of the data should be {data_output_format}.
-            
+
             The ontology is as below. The raw data may contain irrelevant information. We can ignore them.
             {ontology_str}
-            
+
             The input data is:
             {input_data}
-            
+
             Please generate the semantic web data and provide the output in a blob wrapped in ```data```.
         """
 
@@ -110,7 +107,7 @@ class SemanticWebIndexer(BaseTool):
                 name="knowledge_output",
                 type="str",
                 required=True,
-                description="If output_file_path specified, the path to the output file. Otherwise, the semantic data as a string.",
+                description="If output_file_path specified, return the path. Otherwise the semantic data as a string.",
             ),
         ]
 
