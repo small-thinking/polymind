@@ -278,7 +278,7 @@ class BaseTool(AbstractTool, ABC):
         pass
 
 
-class OptimizableBaseTool(AbstractTool, dspy.Predict):
+class OptimizableBaseTool(AbstractTool, dspy.Predict, metaclass=type(BaseModel)):
     def __call__(self, input: Message) -> Message:
         self._validate_input_message(input)
         output_message = self.forward(**input.content)

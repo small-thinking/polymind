@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "polymind"
-version = "0.0.55"  # Update this version before publishing to PyPI
+version = "0.0.56"  # Update this version before publishing to PyPI
 description = "PolyMind is a customizable collaborative multi-agent framework for collective intelligence and distributed problem solving."
 authors = ["TechTao"]
 license = "MIT License"
@@ -49,7 +49,7 @@ skip = ["__init__.py"]
 [tool.flake8]
 max-line-length = 120
 exclude = ["__init__.py"]
-ignore = ["Q000"]
+ignore = ["Q000", "E203"]
 
 [build-system]
 requires = ["poetry-core"]
