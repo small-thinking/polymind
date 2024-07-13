@@ -49,7 +49,7 @@ skip = ["__init__.py"]
 [tool.flake8]
 max-line-length = 120
 exclude = ["__init__.py"]
-ignore = ["Q000"]
+ignore = ["Q000", "E203"]
 
 [build-system]
 requires = ["poetry-core"]
