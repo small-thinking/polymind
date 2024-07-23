@@ -42,7 +42,7 @@ class Logger:
         load_dotenv(override=True)
 
         if display_level is None:
-            env_level = os.getenv("LOGGING_LEVEL", "DEBUG")  # Change default to DEBUG
+            env_level = os.getenv("LOGGING_LEVEL", "INFO")
             self.logging_level = self.LoggingLevel.from_string(env_level)
         elif isinstance(display_level, str):
             self.logging_level = self.LoggingLevel.from_string(display_level)
