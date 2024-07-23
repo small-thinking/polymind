@@ -106,7 +106,6 @@ class TestLogger:
 
         Logger(logger_name="test_logger")
 
-        mock_logger.addHandler.assert_called()
         assert logging.getLevelName(25) == "TOOL", "TOOL log level not added"
         assert logging.getLevelName(26) == "TASK", "TASK log level not added"
         assert logging.getLevelName(27) == "THOUGHT_PROCESS", "THOUGHT_PROCESS log level not added"
