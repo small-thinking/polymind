@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 
 class Logger:
     _instance = None
+    _initialized = False
 
     class LoggingLevel(Enum):
         DEBUG = logging.DEBUG
@@ -39,6 +40,9 @@ class Logger:
         verbose: bool = True,
         display_level: Optional[Union[LoggingLevel, str]] = None,
     ):
+        if self._initialized:
+            return
+
         load_dotenv(override=True)
 
         if display_level is None:
@@ -52,9 +56,6 @@ class Logger:
         self.logger = logging.getLogger(logger_name)
         self.logger.setLevel(self.logging_level.value)
 
-        if self.logger.hasHandlers():
-            self.logger.handlers.clear()
-
         self.formatter = logging.Formatter("%(asctime)s %(levelname)s %(message)s (%(filename)s:%(lineno)d)")
         self.console_handler = logging.StreamHandler()
         self.console_handler.setLevel(self.logging_level.value)
@@ -65,6 +66,8 @@ class Logger:
         logging.addLevelName(self.LoggingLevel.TOOL.value, "TOOL")
         logging.addLevelName(self.LoggingLevel.TASK.value, "TASK")
         logging.addLevelName(self.LoggingLevel.THOUGHT_PROCESS.value, "THOUGHT_PROCESS")
+
+        self._initialized = True
 
     def _log(self, message: str, level: LoggingLevel, color: str) -> None:
         if level.value >= self.logging_level.value:

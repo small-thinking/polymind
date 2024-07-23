@@ -15,20 +15,31 @@ class TestLogger:
 
     @pytest.fixture(scope="function")
     def setup_logger(self, tmp_path):
+        # Reset the Logger singleton for each test
+        Logger._instance = None
+        Logger._initialized = False
+
         log_folder = tmp_path / "logs"
         log_folder.mkdir()
-        logger = Logger(logger_name="test_logger", display_level="DEBUG")  # Change to DEBUG
+        logger = Logger(logger_name="test_logger", display_level="DEBUG")
         return logger
 
     def test_initialization(self, setup_logger):
         logger = setup_logger
+        assert logger.logging_level == Logger.LoggingLevel.DEBUG
+        assert logger.logger.level == Logger.LoggingLevel.DEBUG.value
+        assert len(logger.logger.handlers) == 1
+        assert logger._initialized == True
+
+    def test_single_initialization(self):
+        logger1 = Logger(logger_name="test_logger1", display_level="DEBUG")
+        logger2 = Logger(logger_name="test_logger2", display_level="INFO")
+
+        assert logger1 is logger2, "Logger is not implementing the singleton pattern correctly"
         assert (
-            logger.logging_level == Logger.LoggingLevel.DEBUG
-        ), f"Logger level is incorrect: {logger.logging_level} != DEBUG"
-        assert (
-            logger.logger.level == Logger.LoggingLevel.DEBUG.value
-        ), f"Logger level is not set correctly: {logger.logger.level} != {Logger.LoggingLevel.DEBUG.value}"
-        assert len(logger.logger.handlers) == 1, "Logger handlers are not initialized properly"
+            logger1.logging_level == Logger.LoggingLevel.DEBUG
+        ), "Logger level should not change after first initialization"
+        assert len(logger1.logger.handlers) == 1, "Only one handler should be added"
 
     @pytest.mark.parametrize(
         "log_method, log_level, color, expected_log_method",
@@ -84,19 +95,18 @@ class TestLogger:
         with pytest.raises(ValueError):
             Logger.LoggingLevel.from_string("INVALID_LEVEL")
 
-    def test_logger_singleton(self):
-        logger1 = Logger(logger_name="test_logger1")
-        logger2 = Logger(logger_name="test_logger2")
-        assert logger1 is logger2, "Logger is not implementing the singleton pattern correctly"
-
     @patch("logging.getLogger")
-    def test_custom_log_levels_added(self, mock_get_logger):
+    @patch("logging.StreamHandler")
+    def test_custom_log_levels_added(self, mock_stream_handler, mock_get_logger):
         mock_logger = MagicMock()
         mock_get_logger.return_value = mock_logger
 
+        mock_handler = MagicMock()
+        mock_stream_handler.return_value = mock_handler
+
         Logger(logger_name="test_logger")
 
-        mock_logger.addHandler.assert_called()
+        mock_logger.addHandler.assert_called_once_with(mock_handler)
         assert logging.getLevelName(25) == "TOOL", "TOOL log level not added"
         assert logging.getLevelName(26) == "TASK", "TASK log level not added"
         assert logging.getLevelName(27) == "THOUGHT_PROCESS", "THOUGHT_PROCESS log level not added"
