@@ -42,7 +42,7 @@ class Logger:
         load_dotenv(override=True)
 
         if display_level is None:
-            env_level = os.getenv("LOGGING_LEVEL", "INFO")
+            env_level = os.getenv("LOGGING_LEVEL", "DEBUG")  # Change default to DEBUG
             self.logging_level = self.LoggingLevel.from_string(env_level)
         elif isinstance(display_level, str):
             self.logging_level = self.LoggingLevel.from_string(display_level)
@@ -61,7 +61,12 @@ class Logger:
         self.console_handler.setFormatter(self.formatter)
         self.logger.addHandler(self.console_handler)
 
-    def log(self, message: str, level: LoggingLevel, color: str = ansi.Fore.GREEN) -> None:
+        # Add custom log levels
+        logging.addLevelName(self.LoggingLevel.TOOL.value, "TOOL")
+        logging.addLevelName(self.LoggingLevel.TASK.value, "TASK")
+        logging.addLevelName(self.LoggingLevel.THOUGHT_PROCESS.value, "THOUGHT_PROCESS")
+
+    def _log(self, message: str, level: LoggingLevel, color: str) -> None:
         if level.value >= self.logging_level.value:
             if len(inspect.stack()) >= 4:
                 caller_frame = inspect.stack()[3]
@@ -71,28 +76,44 @@ class Logger:
             caller_line = caller_frame.lineno
             message = f"{caller_name}({caller_line}): {message}"
             log_message = color + message + Fore.RESET
-            self.logger.log(level.value, log_message)
+
+            if level == self.LoggingLevel.DEBUG:
+                self.logger.debug(log_message)
+            elif level == self.LoggingLevel.INFO:
+                self.logger.info(log_message)
+            elif level == self.LoggingLevel.TOOL:
+                self.logger.log(level.value, log_message)
+            elif level == self.LoggingLevel.TASK:
+                self.logger.log(level.value, log_message)
+            elif level == self.LoggingLevel.THOUGHT_PROCESS:
+                self.logger.log(level.value, log_message)
+            elif level == self.LoggingLevel.WARNING:
+                self.logger.warning(log_message)
+            elif level == self.LoggingLevel.ERROR:
+                self.logger.error(log_message)
+            elif level == self.LoggingLevel.CRITICAL:
+                self.logger.critical(log_message)
 
     def debug(self, message: str) -> None:
-        self.log(message, Logger.LoggingLevel.DEBUG, Fore.BLACK)
+        self._log(message, self.LoggingLevel.DEBUG, Fore.BLACK)
 
     def info(self, message: str) -> None:
-        self.log(message, Logger.LoggingLevel.INFO, Fore.WHITE)
+        self._log(message, self.LoggingLevel.INFO, Fore.WHITE)
 
     def tool_log(self, message: str) -> None:
-        self.log(message, Logger.LoggingLevel.TOOL, Fore.YELLOW)
+        self._log(message, self.LoggingLevel.TOOL, Fore.YELLOW)
 
     def task_log(self, message: str) -> None:
-        self.log(message, Logger.LoggingLevel.TASK, Fore.BLUE)
+        self._log(message, self.LoggingLevel.TASK, Fore.BLUE)
 
     def thought_process_log(self, message: str) -> None:
-        self.log(message, Logger.LoggingLevel.THOUGHT_PROCESS, Fore.GREEN)
+        self._log(message, self.LoggingLevel.THOUGHT_PROCESS, Fore.GREEN)
 
     def warning(self, message: str) -> None:
-        self.log(message, Logger.LoggingLevel.WARNING, Fore.YELLOW)
+        self._log(message, self.LoggingLevel.WARNING, Fore.YELLOW)
 
     def error(self, message: str) -> None:
-        self.log(message, Logger.LoggingLevel.ERROR, Fore.RED)
+        self._log(message, self.LoggingLevel.ERROR, Fore.RED)
 
     def critical(self, message: str) -> None:
-        self.log(message, Logger.LoggingLevel.CRITICAL, Fore.MAGENTA)
+        self._log(message, self.LoggingLevel.CRITICAL, Fore.MAGENTA)
