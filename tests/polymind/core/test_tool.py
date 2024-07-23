@@ -13,8 +13,7 @@ from pydantic import ValidationError
 
 from polymind.core.codegen import CodeGenerationTool
 from polymind.core.message import Message
-from polymind.core.tool import (BaseTool, OptimizableBaseTool, Param,
-                                ToolManager)
+from polymind.core.tool import BaseTool, Param, ToolManager
 
 
 class TestParam:
@@ -434,95 +433,6 @@ class TestBaseTool:
                             "type": "object",
                             "properties": {
                                 "output": {"type": "string", "example": "result", "description": "Output parameter"}
-                            },
-                        },
-                    },
-                },
-            ),
-        ],
-    )
-    def test_to_open_function_format(self, tool_instance, expected_spec):
-        spec = tool_instance.to_open_function_format()
-        assert (
-            spec == expected_spec
-        ), "The generated open function format specification should match the expected specification"
-
-
-class ExampleOptimizableTool(OptimizableBaseTool):
-    tool_name: str = "example_optimizable_tool"
-    descriptions: List[str] = ["Performs an example optimization task"]
-
-    def input_spec(self) -> List[Param]:
-        return [
-            Param(name="input1", type="str", required=True, description="First input parameter", example="example1"),
-            Param(name="input2", type="int", required=False, description="Second input parameter", example="2"),
-        ]
-
-    def output_spec(self) -> List[Param]:
-        return [
-            Param(name="output", type="str", required=True, description="Output parameter", example="result"),
-        ]
-
-    def forward(self, **kwargs) -> Message:
-        # Example implementation of forward method
-        output_content = {"output": "result"}
-        return Message(content=output_content)
-
-
-class TestOptimizableBaseTool:
-    @pytest.mark.parametrize(
-        "tool_instance, input_message, expected_output",
-        [
-            (
-                ExampleOptimizableTool(),
-                Message(content={"input1": "example1", "input2": 2}),
-                Message(content={"output": "result"}),
-            ),
-            (
-                ExampleOptimizableTool(),
-                Message(content={"input1": "example1"}),
-                Message(content={"output": "result"}),
-            ),
-        ],
-    )
-    def test_call(self, tool_instance, input_message, expected_output):
-        output = tool_instance(input_message)
-        assert output == expected_output, "The output message should match the expected output"
-
-    @pytest.mark.parametrize(
-        "tool_instance, expected_spec",
-        [
-            (
-                ExampleOptimizableTool(),
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "example_optimizable_tool",
-                        "description": "Performs an example optimization task",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "input1": {
-                                    "type": "string",
-                                    "example": "example1",
-                                    "description": "First input parameter",
-                                },
-                                "input2": {
-                                    "type": "integer",
-                                    "example": "2",
-                                    "description": "Second input parameter",
-                                },
-                            },
-                            "required": ["input1"],
-                        },
-                        "responses": {
-                            "type": "object",
-                            "properties": {
-                                "output": {
-                                    "type": "string",
-                                    "example": "result",
-                                    "description": "Output parameter",
-                                },
                             },
                         },
                     },
