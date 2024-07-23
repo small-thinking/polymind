@@ -17,185 +17,86 @@ class TestLogger:
     def setup_logger(self, tmp_path):
         log_folder = tmp_path / "logs"
         log_folder.mkdir()
-        logger = Logger(logger_name="test_logger", display_level="INFO")
+        logger = Logger(logger_name="test_logger", display_level="DEBUG")  # Change to DEBUG
         return logger
 
     def test_initialization(self, setup_logger):
         logger = setup_logger
         assert (
-            logger.logging_level == Logger.LoggingLevel.INFO
-        ), f"Logger level is incorrect: {logger.logging_level} != INFO"
-        assert logger.logger.level == logging.INFO, f"Logger level is not set correctly: {logger.logger.level} != INFO"
+            logger.logging_level == Logger.LoggingLevel.DEBUG
+        ), f"Logger level is incorrect: {logger.logging_level} != DEBUG"
+        assert (
+            logger.logger.level == Logger.LoggingLevel.DEBUG.value
+        ), f"Logger level is not set correctly: {logger.logger.level} != {Logger.LoggingLevel.DEBUG.value}"
         assert len(logger.logger.handlers) == 1, "Logger handlers are not initialized properly"
 
-    def test_logging_levels(self, setup_logger):
-        logger = setup_logger
-        logger.info("Info message")
-        logger.warning("Warning message")
-        assert (
-            logger.logging_level == Logger.LoggingLevel.INFO
-        ), f"Logger level is incorrect: {logger.logging_level} != INFO"
-        assert logger.logger.level == logging.INFO, f"Logger level is not set correctly: {logger.logger.level} != INFO"
-
+    @pytest.mark.parametrize(
+        "log_method, log_level, color, expected_log_method",
+        [
+            ("debug", Logger.LoggingLevel.DEBUG, Fore.BLACK, "debug"),
+            ("info", Logger.LoggingLevel.INFO, Fore.WHITE, "info"),
+            ("tool_log", Logger.LoggingLevel.TOOL, Fore.YELLOW, "log"),
+            ("task_log", Logger.LoggingLevel.TASK, Fore.BLUE, "log"),
+            ("thought_process_log", Logger.LoggingLevel.THOUGHT_PROCESS, Fore.GREEN, "log"),
+            ("warning", Logger.LoggingLevel.WARNING, Fore.YELLOW, "warning"),
+            ("error", Logger.LoggingLevel.ERROR, Fore.RED, "error"),
+            ("critical", Logger.LoggingLevel.CRITICAL, Fore.MAGENTA, "critical"),
+        ],
+    )
     @patch("inspect.stack", return_value=[None, None, None, MagicMock(function="test_func", lineno=42)])
-    def test_log_method(self, mock_stack, setup_logger):
+    def test_log_methods(self, mock_stack, setup_logger, log_method, log_level, color, expected_log_method):
         logger = setup_logger
-        logger.log("Test log message", Logger.LoggingLevel.INFO, color=Fore.WHITE)
-        log_message = "test_func(42): Test log message"
-        log_output = f"{Fore.WHITE}{log_message}{Fore.RESET}"
-        formatted_message = logger.formatter.format(
-            logging.LogRecord(
-                name="test_logger",
-                level=logging.INFO,
-                pathname="",
-                lineno=42,
-                msg=log_output,
-                args=None,
-                exc_info=None,
-            )
-        )
-        assert log_message in formatted_message, "Log message is incorrect"
+        log_func = getattr(logger, log_method)
 
-    def test_debug_log(self, setup_logger):
-        logger = setup_logger
-        logger.debug("Debug message")
-        log_message = "pytest_pyfunc_call(1): Debug message"
-        log_output = f"{Fore.BLACK}{log_message}{Fore.RESET}"
-        formatted_message = logger.formatter.format(
-            logging.LogRecord(
-                name="test_logger",
-                level=logging.DEBUG,
-                pathname="",
-                lineno=1,
-                msg=log_output,
-                args=None,
-                exc_info=None,
-            )
-        )
-        assert log_message in formatted_message, "Debug log message is incorrect"
+        with patch.object(logger.logger, expected_log_method) as mock_log_method:
+            log_func("Test message")
 
-    def test_info_log(self, setup_logger):
-        logger = setup_logger
-        logger.info("Info message")
-        log_message = "pytest_pyfunc_call(1): Info message"
-        log_output = f"{Fore.WHITE}{log_message}{Fore.RESET}"
-        formatted_message = logger.formatter.format(
-            logging.LogRecord(
-                name="test_logger",
-                level=logging.INFO,
-                pathname="",
-                lineno=1,
-                msg=log_output,
-                args=None,
-                exc_info=None,
-            )
-        )
-        assert log_message in formatted_message, "Info log message is incorrect"
+            log_message = "test_func(42): Test message"
+            expected_log_message = f"{color}{log_message}{Fore.RESET}"
 
-    def test_tool_log(self, setup_logger):
-        logger = setup_logger
-        logger.tool_log("Tool log message")
-        log_message = "pytest_pyfunc_call(1): Tool log message"
-        log_output = f"{Fore.YELLOW}{log_message}{Fore.RESET}"
-        formatted_message = logger.formatter.format(
-            logging.LogRecord(
-                name="test_logger",
-                level=logging.INFO,
-                pathname="",
-                lineno=1,
-                msg=log_output,
-                args=None,
-                exc_info=None,
-            )
-        )
-        assert log_message in formatted_message, "Tool log message is incorrect"
+            if expected_log_method == "log":
+                mock_log_method.assert_called_once_with(log_level.value, expected_log_message)
+            else:
+                mock_log_method.assert_called_once_with(expected_log_message)
 
-    def test_task_log(self, setup_logger):
-        logger = setup_logger
-        logger.task_log("Task log message")
-        log_message = "pytest_pyfunc_call(1): Task log message"
-        log_output = f"{Fore.BLUE}{log_message}{Fore.RESET}"
-        formatted_message = logger.formatter.format(
-            logging.LogRecord(
-                name="test_logger",
-                level=logging.INFO,
-                pathname="",
-                lineno=1,
-                msg=log_output,
-                args=None,
-                exc_info=None,
-            )
-        )
-        assert log_message in formatted_message, "Task log message is incorrect"
+    def test_logging_levels_order(self):
+        assert (
+            Logger.LoggingLevel.DEBUG.value
+            < Logger.LoggingLevel.INFO.value
+            < Logger.LoggingLevel.TOOL.value
+            < Logger.LoggingLevel.TASK.value
+            < Logger.LoggingLevel.THOUGHT_PROCESS.value
+            < Logger.LoggingLevel.WARNING.value
+            < Logger.LoggingLevel.ERROR.value
+            < Logger.LoggingLevel.CRITICAL.value
+        ), "Logging levels are not in the correct order"
 
-    def test_thought_process_log(self, setup_logger):
-        logger = setup_logger
-        logger.thought_process_log("Thought process log message")
-        log_message = "pytest_pyfunc_call(1): Thought process log message"
-        log_output = f"{Fore.GREEN}{log_message}{Fore.RESET}"
-        formatted_message = logger.formatter.format(
-            logging.LogRecord(
-                name="test_logger",
-                level=logging.INFO,
-                pathname="",
-                lineno=1,
-                msg=log_output,
-                args=None,
-                exc_info=None,
-            )
-        )
-        assert log_message in formatted_message, "Thought process log message is incorrect"
+    def test_custom_logging_levels(self):
+        assert Logger.LoggingLevel.TOOL.value == 25, "TOOL logging level is incorrect"
+        assert Logger.LoggingLevel.TASK.value == 26, "TASK logging level is incorrect"
+        assert Logger.LoggingLevel.THOUGHT_PROCESS.value == 27, "THOUGHT_PROCESS logging level is incorrect"
 
-    def test_warning_log(self, setup_logger):
-        logger = setup_logger
-        logger.warning("Warning message")
-        log_message = "pytest_pyfunc_call(1): Warning message"
-        log_output = f"{Fore.YELLOW}{log_message}{Fore.RESET}"
-        formatted_message = logger.formatter.format(
-            logging.LogRecord(
-                name="test_logger",
-                level=logging.WARNING,
-                pathname="",
-                lineno=1,
-                msg=log_output,
-                args=None,
-                exc_info=None,
-            )
-        )
-        assert log_message in formatted_message, "Warning log message is incorrect"
+    def test_from_string_method(self):
+        assert Logger.LoggingLevel.from_string("DEBUG") == Logger.LoggingLevel.DEBUG
+        assert Logger.LoggingLevel.from_string("info") == Logger.LoggingLevel.INFO
+        assert Logger.LoggingLevel.from_string("CRITICAL") == Logger.LoggingLevel.CRITICAL
 
-    def test_error_log(self, setup_logger):
-        logger = setup_logger
-        logger.error("Error message")
-        log_message = "pytest_pyfunc_call(1): Error message"
-        log_output = f"{Fore.RED}{log_message}{Fore.RESET}"
-        formatted_message = logger.formatter.format(
-            logging.LogRecord(
-                name="test_logger",
-                level=logging.ERROR,
-                pathname="",
-                lineno=1,
-                msg=log_output,
-                args=None,
-                exc_info=None,
-            )
-        )
-        assert log_message in formatted_message, "Error log message is incorrect"
+        with pytest.raises(ValueError):
+            Logger.LoggingLevel.from_string("INVALID_LEVEL")
 
-    def test_critical_log(self, setup_logger):
-        logger = setup_logger
-        logger.critical("Critical message")
-        log_message = "pytest_pyfunc_call(1): Critical message"
-        log_output = f"{Fore.MAGENTA}{log_message}{Fore.RESET}"
-        formatted_message = logger.formatter.format(
-            logging.LogRecord(
-                name="test_logger",
-                level=logging.CRITICAL,
-                pathname="",
-                lineno=1,
-                msg=log_output,
-                args=None,
-                exc_info=None,
-            )
-        )
-        assert log_message in formatted_message, "Critical log message is incorrect"
+    def test_logger_singleton(self):
+        logger1 = Logger(logger_name="test_logger1")
+        logger2 = Logger(logger_name="test_logger2")
+        assert logger1 is logger2, "Logger is not implementing the singleton pattern correctly"
+
+    @patch("logging.getLogger")
+    def test_custom_log_levels_added(self, mock_get_logger):
+        mock_logger = MagicMock()
+        mock_get_logger.return_value = mock_logger
+
+        Logger(logger_name="test_logger")
+
+        mock_logger.addHandler.assert_called()
+        assert logging.getLevelName(25) == "TOOL", "TOOL log level not added"
+        assert logging.getLevelName(26) == "TASK", "TASK log level not added"
+        assert logging.getLevelName(27) == "THOUGHT_PROCESS", "THOUGHT_PROCESS log level not added"
