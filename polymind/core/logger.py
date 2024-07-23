@@ -4,7 +4,7 @@ import os
 from enum import Enum
 from typing import Optional, Union
 
-from colorama import Fore, ansi
+from colorama import Fore
 from dotenv import load_dotenv
 
 
