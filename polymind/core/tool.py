@@ -278,26 +278,6 @@ class BaseTool(AbstractTool, ABC):
         pass
 
 
-class OptimizableBaseTool(AbstractTool, dspy.Predict, metaclass=type(BaseModel)):
-    def __call__(self, input: Message) -> Message:
-        self._validate_input_message(input)
-        output_message = self.forward(**input.content)
-        self._validate_output_message(output_message)
-        return output_message
-
-    def forward(self, **kwargs) -> Message:
-        """Execute the tool and return the result synchronously.
-        The derived class must implement this method to define the behavior of the tool.
-
-        Args:
-            **kwargs: The input parameters for the tool.
-
-        Returns:
-            Message: The result of the tool carried in a message.
-        """
-        pass
-
-
 class ToolManager:
     """Tool manager is able to load the tools from the given folder and initialize them.
     All the tools will be indexed in the dict keyed by the tool name.
