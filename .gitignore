@@ -164,6 +164,7 @@ logs
 .env
 scripts
 .vscode
+**/.env
 
 # Polymind learned facts and tools
 knowledge/facts/**

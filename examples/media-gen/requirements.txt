@@ -9,6 +9,7 @@ polymind
 
 # Development dependencies
 pytest  # For running tests
+python-dotenv  # For environment variable management
 
 # Additional dependencies that Polymind requires
 anthropic  # For Claude integration

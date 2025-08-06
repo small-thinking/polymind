@@ -68,7 +68,8 @@ class DummyImageGen(ImageGenerationTool):
                 "aspect_ratio": aspect_ratio,
                 "output_format": output_format,
                 "seed": "12345",
-                "status": "generated (dummy)"
+                "status": "generated (dummy)",
+                "note": "This is a dummy implementation. Real tools would use API keys from .env"
             }
         }
 
