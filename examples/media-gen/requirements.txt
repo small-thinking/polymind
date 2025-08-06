@@ -1,0 +1,15 @@
+# Core Polymind framework
+polymind
+
+# Additional dependencies for media generation examples
+# (Add any specific media generation libraries here when implementing real tools)
+# openai  # For DALL-E integration
+# stability-sdk  # For Stable Diffusion
+# replicate  # For various AI models
+
+# Development dependencies
+pytest  # For running tests
+
+# Additional dependencies that Polymind requires
+anthropic  # For Claude integration
+openai  # For OpenAI integration 
