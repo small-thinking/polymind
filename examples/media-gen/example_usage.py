@@ -5,8 +5,38 @@ This script demonstrates how to use the DummyImageGen and DummyVideoGen tools
 with the new parameter specifications and environment variable configuration.
 """
 
+import os
+from dotenv import load_dotenv
 from tools import DummyImageGen, DummyVideoGen
-from config import config
+
+
+def check_config_status():
+    """Check and display configuration status."""
+    print("Configuration Status:")
+    print("=" * 40)
+    
+    # Load environment variables
+    load_dotenv()
+    
+    # Check API keys
+    openai_key = os.getenv("OPENAI_API_KEY")
+    replicate_token = os.getenv("REPLICATE_API_TOKEN")
+    
+    print(f"OpenAI API Key: {'✓ Available' if openai_key else '✗ Missing'}")
+    print(f"Replicate API Token: "
+          f"{'✓ Available' if replicate_token else '✗ Missing'}")
+    
+    # Show configuration
+    default_image = os.getenv('DEFAULT_IMAGE_MODEL', 'dall-e-3')
+    default_video = os.getenv('DEFAULT_VIDEO_MODEL', 'stable-video-diffusion')
+    log_level = os.getenv('LOG_LEVEL', 'INFO')
+    
+    print(f"\nDefault Image Model: {default_image}")
+    print(f"Default Video Model: {default_video}")
+    print(f"Log Level: {log_level}")
+    
+    if not openai_key or not replicate_token:
+        print("\nMissing API keys. Please check your .env file.")
 
 
 def main():
@@ -16,7 +46,7 @@ def main():
     
     # Check configuration status
     print("\nConfiguration Status:")
-    config.print_status()
+    check_config_status()
     
     # Initialize tools
     image_gen = DummyImageGen()

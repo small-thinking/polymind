@@ -56,8 +56,6 @@ python setup_env.py
 
 3. **Required API keys:**
    - `OPENAI_API_KEY`: For DALL-E image generation
-   - `ANTHROPIC_API_KEY`: For Claude integration
-   - `STABILITY_API_KEY`: For Stable Diffusion
    - `REPLICATE_API_TOKEN`: For various AI models
 
    **Note:** The `.env` file is automatically ignored by git to keep your keys secure.
@@ -73,7 +71,7 @@ media-gen/
 │   └── dummy_video_gen.py         # Dummy video generation tool
 ├── tests/                         # Test suite
 │   └── test_dummy_media_gen.py    # Comprehensive tests
-├── config.py                      # Environment configuration
+
 ├── env.example                    # Environment variables template
 ├── setup_env.py                   # Environment setup script
 ├── example_usage.py               # Usage examples
@@ -142,10 +140,15 @@ class MyVideoGen(VideoGenerationTool):
 
 ```python
 from tools import DummyImageGen, DummyVideoGen
-from config import config
+from dotenv import load_dotenv
+import os
+
+# Load environment variables
+load_dotenv()
 
 # Check configuration status
-config.print_status()
+print(f"OpenAI API Key: {'✓ Available' if os.getenv('OPENAI_API_KEY') else '✗ Missing'}")
+print(f"Replicate API Token: {'✓ Available' if os.getenv('REPLICATE_API_TOKEN') else '✗ Missing'}")
 
 # Initialize tools
 image_gen = DummyImageGen()

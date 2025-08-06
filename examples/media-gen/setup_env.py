@@ -38,8 +38,6 @@ def setup_environment():
     print("2. Run 'python example_usage.py' to test the setup")
     print("\nRequired API keys:")
     print("- OPENAI_API_KEY: For DALL-E image generation")
-    print("- ANTHROPIC_API_KEY: For Claude integration") 
-    print("- STABILITY_API_KEY: For Stable Diffusion")
     print("- REPLICATE_API_TOKEN: For various AI models")
     
     print("\n✓ Environment setup completed!")
