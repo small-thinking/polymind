@@ -6,7 +6,9 @@ with the new parameter specifications and environment variable configuration.
 """
 
 import os
+
 from dotenv import load_dotenv
+
 from tools import DummyImageGen, DummyVideoGen
 
 
