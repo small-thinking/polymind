@@ -49,9 +49,14 @@ media-gen/
 │   ├── __init__.py                # Package exports
 │   ├── media_gen_tool_base.py     # Abstract base classes
 │   ├── dummy_image_gen.py         # Dummy image generation tool
-│   └── dummy_video_gen.py         # Dummy video generation tool
+│   ├── dummy_video_gen.py         # Dummy video generation tool
+│   └── image_understanding_tool.py # Image understanding tool
 ├── tests/                         # Test suite
-│   └── test_dummy_media_gen.py    # Comprehensive tests
+│   ├── test_dummy_media_gen.py    # Comprehensive tests
+│   └── test_image_understanding.py # Image understanding tests
+├── integration_tests/             # Integration tests (manual)
+│   ├── test_image_understanding.py # Real API integration test
+│   └── README.md                  # Integration test documentation
 
 ├── env.example                    # Environment variables template
 ├── setup.py                       # Unified setup script (all platforms)
@@ -115,6 +120,77 @@ class MyVideoGen(VideoGenerationTool):
 - `resolution` (str, optional, default: "480p"): Video resolution
 - `image` (str, optional): URI of starting image
 
+### Image Understanding Tool
+
+```python
+from tools import ImageUnderstandingTool
+
+# Initialize the tool
+image_tool = ImageUnderstandingTool()
+
+# Analyze an image from URL
+result = image_tool.run({
+    "prompt": "What objects do you see in this image?",
+    "images": ["https://example.com/image.jpg"],
+    "return_json": False
+})
+
+# Analyze with JSON response
+result = image_tool.run({
+    "prompt": "Analyze this image and return JSON with 'objects' and 'mood' fields",
+    "images": ["path/to/local/image.jpg"],
+    "return_json": True,
+    "max_tokens": 500
+})
+
+# Generate image generation prompt
+result = image_tool.run({
+    "prompt": "Analyze this image and create a detailed image generation prompt that could be used to recreate this image. Include specific details about objects, characters, setting, lighting, mood, style, composition, colors, and textures.",
+    "images": ["path/to/local/image.jpg"],
+    "max_tokens": 600
+})
+```
+
+**Parameters:**
+- `prompt` (str, optional, default: "What's in this image?"): Analysis prompt
+- `images` (List[str], required): List of image paths or URLs
+- `return_json` (bool, optional, default: False): Return JSON response
+- `max_tokens` (int, optional, default: 1000): Maximum response tokens
+
+
+**Features:**
+- Supports both local image files and image URLs
+- Automatic base64 encoding for local images
+- Optional JSON response format for structured output
+- Configurable token limits
+- Comprehensive error handling
+
+
+## Testing
+
+### Unit Tests
+Run the standard unit tests:
+```bash
+cd tests && python test_dummy_media_gen.py
+python test_image_understanding.py
+```
+
+### Integration Tests
+For real API testing with actual images:
+```bash
+python integration_tests/test_image_understanding.py
+```
+
+**Features:**
+- Generates image generation prompt for test image
+- Uses local test image (`test_image.png`)
+- Comprehensive error handling
+
+**Note:** Integration tests require:
+- Valid OpenAI API key in `.env` file
+- Internet connection
+- Test image file in `integration_tests/` folder
+
 ## Usage
 
 ```python
@@ -132,10 +208,17 @@ print(f"Replicate API Token: {'✓ Available' if os.getenv('REPLICATE_API_TOKEN'
 # Initialize tools
 image_gen = DummyImageGen()
 video_gen = DummyVideoGen()
+image_understanding = ImageUnderstandingTool()
 
 # Generate media
 image_result = image_gen.run({"prompt": "A beautiful sunset"})
 video_result = video_gen.run({"prompt": "A butterfly emerging"})
+
+# Analyze images
+analysis_result = image_understanding.run({
+    "prompt": "What's in this image?",
+    "images": ["https://example.com/image.jpg"]
+})
 ```
 
 ## Running Examples
@@ -144,9 +227,13 @@ video_result = video_gen.run({"prompt": "A butterfly emerging"})
 # Activate virtual environment
 source venv/bin/activate  # On Windows: venv\Scripts\activate.bat
 
-# Run example
+# Run examples
 python example_usage.py
 
 # Run tests
 cd tests && python test_dummy_media_gen.py
+python test_image_understanding.py
+
+# Run integration tests (requires API key)
+python integration_tests/test_image_understanding.py
 ``` 

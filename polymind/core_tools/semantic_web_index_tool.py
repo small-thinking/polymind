@@ -203,7 +203,7 @@ class SemanticWebIndexer(BaseTool):
         semantic_data = []
 
         for i in range(0, len(data), batch_size):
-            batch = data[i : i + batch_size]
+            batch = data[i: i + batch_size]
             batch_str = json.dumps(batch)
 
             # Use LLM to convert to RDF as specified format.
@@ -220,7 +220,7 @@ class SemanticWebIndexer(BaseTool):
                 semantic_data.append(match.group(1))
             else:
                 self._logger.warning(
-                    f"Semantic data generation failed for batch {i//batch_size}. Response:\n\n{data_response_str}"
+                    f"Semantic data generation failed for batch {i // batch_size}. Response:\n\n{data_response_str}"
                 )
 
         # Combine all batches

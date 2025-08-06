@@ -1,4 +1,8 @@
 # noqa: D104
+"""PolyMind - A customizable collaborative multi-agent framework."""
+
+__version__ = "0.0.61"
+
 # Expose the core classes
 from .core.agent import Agent
 from .core.message import Message
