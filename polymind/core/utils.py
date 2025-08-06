@@ -1,3 +1,4 @@
+import base64
 import json
 import os
 import re
@@ -102,3 +103,62 @@ def get_repo_root_path():
             return cur_path
         cur_path = os.path.dirname(cur_path)
     raise FileNotFoundError("Repository root not found")
+
+
+def encode_image_to_base64(image_path: str) -> str:
+    """Encode a local image file to base64 string.
+    
+    Args:
+        image_path (str): Path to the local image file
+        
+    Returns:
+        str: Base64 encoded string of the image
+        
+    Raises:
+        FileNotFoundError: If the image file doesn't exist
+        ValueError: If the file cannot be read as an image
+    """
+    if not os.path.exists(image_path):
+        raise FileNotFoundError(f"Image file not found: {image_path}")
+    
+    try:
+        with open(image_path, "rb") as image_file:
+            encoded_string = base64.b64encode(image_file.read()).decode("utf-8")
+            return encoded_string
+    except Exception as e:
+        raise ValueError(f"Failed to encode image {image_path}: {e}")
+
+
+def is_valid_image_url(url: str) -> bool:
+    """Check if a URL is a valid image URL.
+    
+    Args:
+        url (str): URL to validate
+        
+    Returns:
+        bool: True if URL appears to be a valid image URL
+    """
+    # First check if it's a local file path (contains path separators and doesn't start with http)
+    if ('\\' in url or os.sep in url) and not url.startswith(('http://', 'https://')):
+        return False
+    
+    # Check if it starts with http/https
+    if not url.startswith(('http://', 'https://')):
+        return False
+    
+    image_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp']
+    url_lower = url.lower()
+    
+    # Check for common image file extensions
+    if any(ext in url_lower for ext in image_extensions):
+        return True
+    
+    # Check for common image hosting domains
+    image_domains = [
+        'imgur.com', 'flickr.com', '500px.com', 'unsplash.com',
+        'pexels.com', 'pixabay.com', 'wikipedia.org', 'wikimedia.org'
+    ]
+    if any(domain in url_lower for domain in image_domains):
+        return True
+    
+    return False
