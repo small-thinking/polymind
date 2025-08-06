@@ -18,47 +18,28 @@ This package provides:
 
 ### Quick Setup
 
-**Linux/macOS:**
+**Linux (recommended):**
 ```bash
-./setup_env.sh
-```
-
-**Windows:**
-```cmd
-setup_env.bat
+python setup.py
 ```
 
 **Manual Setup:**
 ```bash
 python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate.bat
+source venv/bin/activate
 pip install -r requirements.txt
+cp env.example .env
 ```
 
 ### Environment Configuration
 
-**Option 1: Use the setup script (recommended):**
-```bash
-python setup_env.py
-```
+The setup script automatically creates a `.env` file from the template. You'll need to edit it with your actual API keys:
 
-**Option 2: Manual setup:**
-1. **Copy the environment template:**
-   ```bash
-   cp env.example .env
-   ```
+**Required API keys:**
+- `OPENAI_API_KEY`: For DALL-E image generation
+- `REPLICATE_API_TOKEN`: For various AI models
 
-2. **Edit `.env` file with your API keys:**
-   ```bash
-   # Edit .env file with your actual API keys
-   nano .env  # or use your preferred editor
-   ```
-
-3. **Required API keys:**
-   - `OPENAI_API_KEY`: For DALL-E image generation
-   - `REPLICATE_API_TOKEN`: For various AI models
-
-   **Note:** The `.env` file is automatically ignored by git to keep your keys secure.
+**Note:** The `.env` file is automatically ignored by git to keep your keys secure.
 
 ## File Structure
 
@@ -73,11 +54,9 @@ media-gen/
 │   └── test_dummy_media_gen.py    # Comprehensive tests
 
 ├── env.example                    # Environment variables template
-├── setup_env.py                   # Environment setup script
+├── setup.py                       # Unified setup script (all platforms)
 ├── example_usage.py               # Usage examples
 ├── requirements.txt               # Dependencies
-├── setup_env.sh                   # Linux/macOS setup script
-├── setup_env.bat                  # Windows setup script
 ├── __init__.py                    # Main package exports
 └── README.md                      # This file
 ```
