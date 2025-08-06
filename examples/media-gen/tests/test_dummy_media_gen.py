@@ -6,8 +6,8 @@ and DummyVideoGen tools. It verifies that the tools can be instantiated and
 return expected dummy results without requiring actual media generation APIs.
 """
 
-import sys
 import os
+import sys
 
 # Add the parent directory to sys.path to enable imports
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

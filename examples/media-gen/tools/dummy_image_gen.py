@@ -7,6 +7,7 @@ the media generation framework structure without requiring real image generation
 """
 
 from polymind.core.message import Message
+
 from .media_gen_tool_base import ImageGenerationTool
 
 
