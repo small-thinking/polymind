@@ -2,16 +2,21 @@
 Example usage of the media generation tools.
 
 This script demonstrates how to use the DummyImageGen and DummyVideoGen tools
-with the new parameter specifications.
+with the new parameter specifications and environment variable configuration.
 """
 
 from tools import DummyImageGen, DummyVideoGen
+from config import config
 
 
 def main():
     """Demonstrate the media generation tools."""
     print("Media Generation Tools Example")
     print("=" * 40)
+    
+    # Check configuration status
+    print("\nConfiguration Status:")
+    config.print_status()
     
     # Initialize tools
     image_gen = DummyImageGen()

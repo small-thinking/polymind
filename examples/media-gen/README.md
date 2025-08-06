@@ -35,6 +35,33 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate.bat
 pip install -r requirements.txt
 ```
 
+### Environment Configuration
+
+**Option 1: Use the setup script (recommended):**
+```bash
+python setup_env.py
+```
+
+**Option 2: Manual setup:**
+1. **Copy the environment template:**
+   ```bash
+   cp env.example .env
+   ```
+
+2. **Edit `.env` file with your API keys:**
+   ```bash
+   # Edit .env file with your actual API keys
+   nano .env  # or use your preferred editor
+   ```
+
+3. **Required API keys:**
+   - `OPENAI_API_KEY`: For DALL-E image generation
+   - `ANTHROPIC_API_KEY`: For Claude integration
+   - `STABILITY_API_KEY`: For Stable Diffusion
+   - `REPLICATE_API_TOKEN`: For various AI models
+
+   **Note:** The `.env` file is automatically ignored by git to keep your keys secure.
+
 ## File Structure
 
 ```
@@ -46,6 +73,9 @@ media-gen/
 │   └── dummy_video_gen.py         # Dummy video generation tool
 ├── tests/                         # Test suite
 │   └── test_dummy_media_gen.py    # Comprehensive tests
+├── config.py                      # Environment configuration
+├── env.example                    # Environment variables template
+├── setup_env.py                   # Environment setup script
 ├── example_usage.py               # Usage examples
 ├── requirements.txt               # Dependencies
 ├── setup_env.sh                   # Linux/macOS setup script
@@ -112,6 +142,10 @@ class MyVideoGen(VideoGenerationTool):
 
 ```python
 from tools import DummyImageGen, DummyVideoGen
+from config import config
+
+# Check configuration status
+config.print_status()
 
 # Initialize tools
 image_gen = DummyImageGen()
