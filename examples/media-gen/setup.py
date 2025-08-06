@@ -3,9 +3,10 @@
 Setup script for Media Generation Example (Linux).
 Handles virtual environment creation and environment configuration.
 """
-import sys
-import shutil
 import subprocess
+import sys
+
+import shutil
 from pathlib import Path
 
 
