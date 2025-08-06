@@ -46,7 +46,11 @@ milvus = ["pymilvus"]
 line-length = 120
 
 [tool.isort]
-skip = ["__init__.py"]
+profile = "black"
+line_length = 120
+skip = ["__init__.py", "venv", "*/venv/*", "*/__pycache__/*", "*/site-packages/*"]
+known_first_party = ["polymind"]
+known_third_party = ["dotenv", "pathlib", "shutil"]
 
 [tool.flake8]
 max-line-length = 120
