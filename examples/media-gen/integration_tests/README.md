@@ -2,6 +2,80 @@
 
 This folder contains integration tests that require real API calls and external resources.
 
+## OpenAI Image Generation Integration Test
+
+### Prerequisites
+- OpenAI API key in `.env` file
+- Internet connection
+- OpenAI API access with verified organization (for image generation)
+
+### Running the Test
+
+```bash
+# From the media-gen directory
+python integration_tests/test_openai_image_gen.py
+```
+
+### What it does
+- Generates a single image with a specific whimsical prompt
+- Tests the OpenAI image generation tool with real API calls
+- Saves the generated image to `~/Downloads/polymind_generated_images/`
+- Provides helpful error messages for common issues
+
+### Expected Output
+The test will show:
+- ✅ Confirmation that API key is found
+- 🎨 Image generation progress
+- 📁 File path and size of generated image
+- 🎯 Generation metadata
+
+### Generated Image
+- Dynamically named image with timestamp (e.g., `openai_generated_image_20241201_143022.png`)
+
+### Notes
+- This test is not run automatically with unit tests
+- It requires a valid OpenAI API key
+- It makes real API calls and may incur costs
+- Generated images are saved in `~/Downloads/polymind_generated_images/` with unique names
+- If you get an organization verification error, follow the provided instructions
+
+## Replicate Image Generation Integration Test
+
+### Prerequisites
+- Replicate API token in `.env` file
+- Internet connection
+- Replicate API access
+
+### Running the Test
+
+```bash
+# From the media-gen directory
+python integration_tests/test_replicate_image_gen.py
+```
+
+### What it does
+- Generates a single image with a cinematic cat prompt
+- Tests the Replicate image generation tool with real API calls
+- Saves the generated image to `~/Downloads/polymind_generated_images/`
+- Provides helpful error messages for common issues
+
+### Expected Output
+The test will show:
+- ✅ Confirmation that API token is found
+- 🎨 Image generation progress
+- 📁 File path and size of generated image
+- 🎯 Generation metadata
+
+### Generated Image
+- Dynamically named image with timestamp (e.g., `replicate_generated_image_20241201_143022.jpeg`)
+
+### Notes
+- This test is not run automatically with unit tests
+- It requires a valid Replicate API token
+- It makes real API calls and may incur costs
+- Generated images are saved in `~/Downloads/polymind_generated_images/` with unique names
+- Uses the WAN 2.2 model by default
+
 ## Image Understanding Integration Test
 
 ### Prerequisites

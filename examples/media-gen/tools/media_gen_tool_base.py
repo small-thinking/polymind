@@ -50,6 +50,13 @@ class ImageGenerationTool(BaseTool, ABC):
                 required=False,
                 description="Output format for the generated image",
                 example="jpg"
+            ),
+            Param(
+                name="output_folder",
+                type="str",
+                required=False,
+                description="Folder path where to save the generated image",
+                example="/path/to/save/images/"
             )
         ]
 
@@ -82,6 +89,7 @@ class ImageGenerationTool(BaseTool, ABC):
                 - prompt: Text description of the desired image
                 - aspect_ratio: Image aspect ratio (optional, default: "4:3")
                 - output_format: Output format (optional, default: "jpg")
+                - output_folder: Folder path to save the image (optional)
         
         Returns:
             dict: Dictionary containing:

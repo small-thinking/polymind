@@ -49,10 +49,14 @@ media-gen/
 │   ├── __init__.py                # Package exports
 │   ├── media_gen_tool_base.py     # Abstract base classes
 │   ├── dummy_image_gen.py         # Dummy image generation tool
+│   ├── openai_image_gen.py        # OpenAI image generation tool
+│   ├── replicate_image_gen.py     # Replicate image generation tool
 │   ├── dummy_video_gen.py         # Dummy video generation tool
 │   └── image_understanding_tool.py # Image understanding tool
 ├── tests/                         # Test suite
 │   ├── test_dummy_media_gen.py    # Comprehensive tests
+│   ├── test_openai_image_gen.py   # OpenAI image generation tests
+│   ├── test_replicate_image_gen.py # Replicate image generation tests
 │   └── test_image_understanding.py # Image understanding tests
 ├── integration_tests/             # Integration tests (manual)
 │   ├── test_image_understanding.py # Real API integration test
@@ -78,6 +82,7 @@ class MyImageGen(ImageGenerationTool):
         prompt = input.get("prompt", "")
         aspect_ratio = input.get("aspect_ratio", "4:3")
         output_format = input.get("output_format", "jpg")
+        output_folder = input.get("output_folder", "/tmp")
         
         # Your image generation logic here
         # ...
@@ -92,6 +97,88 @@ class MyImageGen(ImageGenerationTool):
 - `prompt` (str, required): Text description
 - `aspect_ratio` (str, optional, default: "4:3"): Image aspect ratio
 - `output_format` (str, optional, default: "jpg"): Output format
+- `output_folder` (str, optional, default: "~/Downloads"): Folder path where to save the generated image
+
+### OpenAI Image Generation Tool
+
+```python
+from tools import OpenAIImageGen
+
+# Initialize the tool
+image_gen = OpenAIImageGen()
+
+# Basic usage
+result = image_gen.run({
+    "prompt": "A gray tabby cat hugging an otter with an orange scarf",
+    "output_folder": "./generated_images"
+})
+
+# Advanced usage with custom parameters
+result = image_gen.run({
+    "prompt": "A futuristic cityscape at sunset with flying cars",
+    "size": "1024x1536",
+    "quality": "high",
+    "output_format": "png",
+    "compression": 90,
+    "background": "opaque",
+    "output_folder": "./generated_images"
+})
+```
+
+**Parameters:**
+- `prompt` (str, required): Text description of the desired image
+- `output_folder` (str, optional, default: "~/Downloads"): Folder path where to save the generated image
+- `size` (str, optional, default: "1024x1024"): Image dimensions
+- `quality` (str, optional, default: "low"): Rendering quality (low, medium, high)
+- `output_format` (str, optional, default: "png"): Output format
+- `compression` (int, optional, default: 80): Compression level 0-100%
+- `background` (str, optional, default: "opaque"): Transparent or opaque
+
+**Features:**
+- Uses OpenAI's gpt-4o-mini model with image generation capabilities
+- Supports various image parameters (size, quality, format, compression, background)
+- Automatic directory creation for output paths
+- Comprehensive error handling
+- Integrates seamlessly with Polymind framework
+
+### Replicate Image Generation Tool
+
+```python
+from tools import ReplicateImageGen
+
+# Initialize the tool with default model (WAN 2.2)
+image_gen = ReplicateImageGen()
+
+# Basic usage
+result = image_gen.run({
+    "prompt": "A cinematic cat portrait with golden hour lighting",
+    "output_folder": "./generated_images"
+})
+
+# Advanced usage with custom parameters
+result = image_gen.run({
+    "prompt": "A cinematic, photorealistic medium shot of a cat",
+    "seed": 246764,
+    "aspect_ratio": "4:3",
+    "model": "stability-ai/sdxl"
+})
+```
+
+**Parameters:**
+- `prompt` (str, required): Text description of the desired image
+- `output_folder` (str, optional, default: "~/Downloads"): Folder path where to save the generated image
+- `seed` (int, optional): Random seed for reproducible results
+- `aspect_ratio` (str, optional, default: "4:3"): Image aspect ratio
+- `output_format` (str, optional, default: "jpeg"): Output format
+- `model` (str, optional): Replicate model to use (overrides default)
+
+**Features:**
+- Uses Replicate's API with various image generation models
+- Supports models like WAN 2.2, Stable Diffusion XL, and others
+- Reproducible results with seed parameter
+- Automatic directory creation for output paths
+- Comprehensive error handling
+- Integrates seamlessly with Polymind framework
 
 ### Video Generation Tool
 
@@ -194,7 +281,7 @@ python integration_tests/test_image_understanding.py
 ## Usage
 
 ```python
-from tools import DummyImageGen, DummyVideoGen
+from tools import DummyImageGen, OpenAIImageGen, ReplicateImageGen, DummyVideoGen
 from dotenv import load_dotenv
 import os
 
@@ -207,11 +294,22 @@ print(f"Replicate API Token: {'✓ Available' if os.getenv('REPLICATE_API_TOKEN'
 
 # Initialize tools
 image_gen = DummyImageGen()
+openai_image_gen = OpenAIImageGen()
+replicate_image_gen = ReplicateImageGen()
 video_gen = DummyVideoGen()
 image_understanding = ImageUnderstandingTool()
 
 # Generate media
 image_result = image_gen.run({"prompt": "A beautiful sunset"})
+openai_result = openai_image_gen.run({
+    "prompt": "A beautiful sunset over mountains",
+    "output_folder": "./generated_images"
+})
+replicate_result = replicate_image_gen.run({
+    "prompt": "A cinematic cat portrait",
+    "seed": 12345,
+    "aspect_ratio": "4:3"
+})
 video_result = video_gen.run({"prompt": "A butterfly emerging"})
 
 # Analyze images
@@ -232,6 +330,8 @@ python example_usage.py
 
 # Run tests
 cd tests && python test_dummy_media_gen.py
+python test_openai_image_gen.py
+python test_replicate_image_gen.py
 python test_image_understanding.py
 
 # Run integration tests (requires API key)

@@ -1,0 +1,155 @@
+"""
+Replicate image generation tool using various models.
+
+This module provides a real implementation of an image generation tool using
+Replicate's API with various image generation models. It integrates seamlessly
+with the Polymind framework and supports various image generation parameters.
+"""
+
+import replicate
+from pathlib import Path
+
+from polymind.core.message import Message
+
+from .media_gen_tool_base import ImageGenerationTool
+
+
+class ReplicateImageGen(ImageGenerationTool):
+    """
+    Replicate image generation tool using various models.
+    
+    This tool uses Replicate's API to generate images using various models
+    like WAN, Stable Diffusion, and others. It supports various parameters
+    including seed, prompt, aspect ratio, and model-specific options.
+    
+    Requires Replicate API token to be set in environment variables.
+    """
+
+    def __init__(self, model: str = "prunaai/wan-2.2-image", **kwargs):
+        """
+        Initialize the Replicate image generation tool.
+        
+        Args:
+            model (str): Replicate model identifier (default: "prunaai/wan-2.2-image")
+            **kwargs: Additional arguments passed to parent class
+        """
+        super().__init__(
+            tool_name="replicate_image_generator",
+            descriptions=[
+                f"Replicate image generation using {model}",
+                "Generate high-quality images from text prompts",
+                "Supports various models and parameters"
+            ],
+            **kwargs
+        )
+        self._model = model
+
+    def run(self, input: dict) -> dict:
+        """
+        Generate an image using Replicate API.
+        
+        Args:
+            input (dict): Input parameters containing:
+                - prompt: Text description of the desired image
+                - output_folder: Folder path where to save the image (optional, default: "~/Downloads")
+                - seed: Random seed for reproducible results (optional)
+                - aspect_ratio: Image aspect ratio (optional, default: "4:3")
+                - output_format: Output format (optional, default: "jpeg")
+                - model: Replicate model to use (optional, overrides default)
+        
+        Returns:
+            dict: Dictionary containing:
+                - image_path: Path to the generated image file
+                - generation_info: Generation metadata
+        """
+        # Extract parameters with defaults
+        prompt = input.get("prompt", "")
+        output_folder = input.get("output_folder", str(Path.home() / "Downloads"))
+        seed = input.get("seed")
+        aspect_ratio = input.get("aspect_ratio", "4:3")
+        output_format = input.get("output_format", "jpeg")
+        model = input.get("model", self._model)
+        
+        # Generate dynamic image name with timestamp to avoid duplication
+        import os
+        from datetime import datetime
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        base_name = f"replicate_generated_image_{timestamp}"
+        image_name = f"{base_name}.{output_format}"
+        
+        # Ensure unique filename
+        counter = 1
+        full_path = f"{output_folder.rstrip('/')}/{image_name}"
+        while os.path.exists(full_path):
+            image_name = f"{base_name}_{counter}.{output_format}"
+            full_path = f"{output_folder.rstrip('/')}/{image_name}"
+            counter += 1
+        
+        # Create full path
+        image_path = f"{output_folder.rstrip('/')}/{image_name}"
+        
+        # Prepare input for Replicate
+        replicate_input = {
+            "prompt": prompt,
+            "aspect_ratio": aspect_ratio
+        }
+        
+        # Add seed if provided
+        if seed is not None:
+            replicate_input["seed"] = seed
+        
+        # Generate image using Replicate API
+        try:
+            # Ensure directory exists
+            output_path = Path(image_path)
+            output_path.parent.mkdir(parents=True, exist_ok=True)
+            
+            # Run the model
+            output = replicate.run(model, input=replicate_input)
+            
+            # Download and save the image
+            with open(image_path, "wb") as file:
+                file.write(output.read())
+            
+            return {
+                "image_path": image_path,
+                "generation_info": {
+                    "model": model,
+                    "prompt": prompt,
+                    "seed": seed,
+                    "aspect_ratio": aspect_ratio,
+                    "format": output_format,
+                    "status": "generated successfully",
+                    "replicate_url": output.url() if hasattr(output, 'url') else None
+                }
+            }
+            
+        except Exception as e:
+            return {
+                "image_path": "",
+                "generation_info": {
+                    "model": model,
+                    "prompt": prompt,
+                    "error": str(e),
+                    "status": "generation failed"
+                }
+            }
+
+    async def _execute(self, input: Message) -> Message:
+        """
+        Execute the Replicate image generation using the Polymind framework's Message system.
+        
+        Args:
+            input (Message): Input message containing generation parameters
+            
+        Returns:
+            Message: Output message with generated image information
+        """
+        # Convert Message to dict for the run method
+        input_dict = input.content
+        
+        # Call the run method
+        result = self.run(input_dict)
+        
+        # Return result wrapped in a Message
+        return Message(content=result) 

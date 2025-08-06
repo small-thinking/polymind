@@ -6,6 +6,8 @@ hardcoded paths instead of actually generating images. This is useful for testin
 the media generation framework structure without requiring real image generation APIs.
 """
 
+from pathlib import Path
+
 from polymind.core.message import Message
 
 from .media_gen_tool_base import ImageGenerationTool
@@ -56,9 +58,23 @@ class DummyImageGen(ImageGenerationTool):
         prompt = input.get("prompt", "")
         aspect_ratio = input.get("aspect_ratio", "4:3")
         output_format = input.get("output_format", "jpg")
+        output_folder = input.get("output_folder", str(Path.home() / "Downloads"))
         
-        # Return hardcoded dummy image path and metadata
-        dummy_image_path = f"/tmp/dummy_generated_image.{output_format}"
+        # Generate dynamic image name with timestamp to avoid duplication
+        import os
+        from datetime import datetime
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        base_name = f"dummy_generated_image_{timestamp}"
+        image_name = f"{base_name}.{output_format}"
+        
+        # Ensure unique filename
+        counter = 1
+        while os.path.exists(f"{output_folder.rstrip('/')}/{image_name}"):
+            image_name = f"{base_name}_{counter}.{output_format}"
+            counter += 1
+        
+        # Create full path
+        dummy_image_path = f"{output_folder.rstrip('/')}/{image_name}"
         
         return {
             "image_path": dummy_image_path,
