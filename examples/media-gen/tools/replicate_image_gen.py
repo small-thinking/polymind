@@ -107,22 +107,51 @@ class ReplicateImageGen(ImageGenerationTool):
             # Run the model
             output = replicate.run(model, input=replicate_input)
             
-            # Download and save the image
-            with open(image_path, "wb") as file:
-                file.write(output.read())
-            
-            return {
-                "image_path": image_path,
-                "generation_info": {
-                    "model": model,
-                    "prompt": prompt,
-                    "seed": seed,
-                    "aspect_ratio": aspect_ratio,
-                    "format": output_format,
-                    "status": "generated successfully",
-                    "replicate_url": output.url() if hasattr(output, 'url') else None
+            # Handle different output types from Replicate
+            if hasattr(output, 'read'):
+                # Output is a FileOutput object
+                with open(image_path, "wb") as file:
+                    file.write(output.read())
+                
+                return {
+                    "image_path": image_path,
+                    "generation_info": {
+                        "model": model,
+                        "prompt": prompt,
+                        "seed": seed,
+                        "aspect_ratio": aspect_ratio,
+                        "format": output_format,
+                        "status": "generated successfully",
+                        "replicate_url": None
+                    }
                 }
-            }
+            elif isinstance(output, list) and len(output) > 0:
+                # Output is a list of URLs
+                image_url = output[0]
+                import requests
+
+                # Download the image
+                response = requests.get(image_url)
+                response.raise_for_status()
+                
+                # Save the image
+                with open(image_path, "wb") as file:
+                    file.write(response.content)
+                
+                return {
+                    "image_path": image_path,
+                    "generation_info": {
+                        "model": model,
+                        "prompt": prompt,
+                        "seed": seed,
+                        "aspect_ratio": aspect_ratio,
+                        "format": output_format,
+                        "status": "generated successfully",
+                        "replicate_url": image_url
+                    }
+                }
+            else:
+                raise ValueError(f"Unexpected output format from Replicate: {type(output)}")
             
         except Exception as e:
             return {
