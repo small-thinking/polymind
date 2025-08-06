@@ -171,3 +171,6 @@ knowledge/facts/**
 knowledge/tools/**
 use_cases
 polymind/example_tools/**
+
+# Large files are tracked with Git LFS (see .gitattributes)
+# PNG files are automatically tracked by LFS
