@@ -11,10 +11,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from polymind.core.message import Message
-from polymind.core_tools.llm_tool import (
-    OpenAIChatTool,
-    OpenAICodeGenerationTool,
-)
+from polymind.core_tools.llm_tool import OpenAIChatTool, OpenAICodeGenerationTool
 
 
 class TestOpenAIChatTool:
