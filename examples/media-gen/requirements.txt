@@ -13,4 +13,6 @@ python-dotenv  # For environment variable management
 
 # Additional dependencies that Polymind requires
 anthropic  # For Claude integration
-openai  # For OpenAI integration 
+openai  # For OpenAI integration
+replicate  # For Replicate integration
+requests  # For downloading images from URLs 
