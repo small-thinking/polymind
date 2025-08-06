@@ -10,9 +10,9 @@ Run with: python integration_tests/test_image_understanding.py
 
 import os
 import sys
-from pathlib import Path
 
 from dotenv import load_dotenv
+from pathlib import Path
 
 # Add the parent directory to the path to import the tool
 sys.path.insert(0, str(Path(__file__).parent.parent))
