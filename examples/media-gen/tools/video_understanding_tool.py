@@ -33,15 +33,18 @@ class VideoUnderstandingTool(BaseTool):
     client: Optional[Any] = None
 
     prompt: ClassVar[str] = """
-        Analyze these video screenshots and generate image generation prompts for each scene.
+        Analyze these video screenshots and generate image generation prompts 
+        for each scene.
         
         User preference: {user_preference}
         
         Requirements:
-        1. Each prompt should be detailed and specific enough for image generation
+        1. Each prompt should be detailed and specific enough for image 
+           generation
         2. Prompts should maintain logical coherence between scenes
         3. Consider the visual flow and narrative progression
-        4. Include relevant details like lighting, composition, mood, and style
+        4. Include relevant details like lighting, composition, mood, and 
+           style
         5. Ensure prompts work together to tell a coherent visual story
         
         For each screenshot, provide:
@@ -87,9 +90,11 @@ class VideoUnderstandingTool(BaseTool):
         super().__init__(
             tool_name="video_understanding",
             descriptions=[
-                "Analyze videos by extracting screenshots and generating image prompts",
+                "Analyze videos by extracting screenshots and generating "
+                "image prompts",
                 "Video understanding and scene analysis tool",
-                "AI tool for generating coherent image prompts from video scenes"
+                "AI tool for generating coherent image prompts from video "
+                "scenes"
             ],
             api_key=api_key,
             model=model,
@@ -113,8 +118,10 @@ class VideoUnderstandingTool(BaseTool):
                 name="user_preference",
                 type="str",
                 required=False,
-                description="User's preference for the generated image prompts "
-                           "(style, theme, etc.)",
+                description=(
+                    "User's preference for the generated image prompts "
+                    "(style, theme, etc.)"
+                ),
                 example="Create prompts in a cinematic style with dramatic lighting"
             ),
             Param(
