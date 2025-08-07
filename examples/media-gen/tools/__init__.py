@@ -13,6 +13,7 @@ from .image_understanding_tool import ImageUnderstandingTool
 from .openai_image_gen import OpenAIImageGen
 from .replicate_image_gen import ReplicateImageGen
 from .replicate_video_gen import ReplicateVideoGen
+from .video_understanding_tool import VideoUnderstandingTool
 
 __all__ = [
     "ImageGenerationTool",
@@ -22,5 +23,6 @@ __all__ = [
     "ImageUnderstandingTool",
     "OpenAIImageGen",
     "ReplicateImageGen",
-    "ReplicateVideoGen"
+    "ReplicateVideoGen",
+    "VideoUnderstandingTool"
 ] 
