@@ -1,13 +1,24 @@
+#!/usr/bin/env python3
 """
-Test script for VideoUnderstandingTool.
+Integration test for VideoUnderstandingTool.
 
-This script tests the VideoUnderstandingTool with a specific video file
-and user preference for kapybara, cat, and football.
+This script tests the VideoUnderstandingTool with test_video.mp4 using either
+interval-based or keyframe-based extraction methods.
+
+Requirements:
+- Valid OpenAI API key in environment variables
+- test_video.mp4 file in the integration_tests directory
+- Internet connection
+- OpenAI API access
+
+Run with: python integration_tests/test_video_understanding_tool.py [--interval]
 """
 
+import argparse
 import os
 import sys
 
+from dotenv import load_dotenv
 from pathlib import Path
 
 # Add the parent directory to the path to import the tool
@@ -16,81 +27,100 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from tools.video_understanding_tool import VideoUnderstandingTool
 
 
-def test_video_understanding():
-    """Test video understanding with kapybara, cat, and football preference."""
+def test_extraction(tool, test_video_path, use_interval=False):
+    """Test video extraction with specified method."""
+    if use_interval:
+        print("📸 Testing Interval-Based Extraction")
+        print("-" * 40)
+        
+        result = tool.run({
+            "video_path": str(test_video_path),
+            "user_preference": "cinematic style with dramatic lighting",
+            "extraction_mode": "interval",
+            "screenshot_interval": 10.0,
+            "output_dir": "~/Downloads/video_understanding_interval"
+        })
+        
+        print("✅ Interval-based analysis completed!")
+        print(f"📊 Scenes: {result['metadata']['total_scenes']}")
+        print(f"⏱️  Duration: {result['metadata']['video_duration']}")
+        print(f"📸 Interval: {result['metadata']['screenshot_interval']}")
+        
+    else:
+        print("🔍 Testing Keyframe-Based Extraction")
+        print("-" * 40)
+        
+        result = tool.run({
+            "video_path": str(test_video_path),
+            "user_preference": "cinematic style with dramatic lighting",
+            "extraction_mode": "keyframe",
+            "keyframe_threshold": 25.0,
+            "min_interval_frames": 15,
+            "output_dir": "~/Downloads/video_understanding_keyframe"
+        })
+        
+        print("✅ Keyframe-based analysis completed!")
+        print(f"📊 Scenes: {result['metadata']['total_scenes']}")
+        print(f"⏱️  Duration: {result['metadata']['video_duration']}")
+        print(f"🎯 Threshold: {result['metadata']['keyframe_threshold']}")
     
-    # Check if OpenAI API key is available
+    return len(result["image_prompts"])
+
+
+def main():
+    """Run the integration test."""
+    # Parse command line arguments
+    parser = argparse.ArgumentParser(
+        description="Test VideoUnderstandingTool with different extraction methods"
+    )
+    parser.add_argument(
+        "--interval",
+        action="store_true",
+        help="Use interval-based extraction (default: keyframe-based)"
+    )
+    args = parser.parse_args()
+    
+    extraction_method = "interval" if args.interval else "keyframe"
+    
+    print("=== Video Understanding Integration Test ===")
+    print(f"This test will analyze test_video.mp4 using {extraction_method}-based extraction.\n")
+    
+    # Load environment variables
+    load_dotenv()
+    
+    # Check for OpenAI API key
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
-        print("❌ OPENAI_API_KEY not found in environment variables")
-        print("Please set: export OPENAI_API_KEY='your_token_here'")
-        return False
+        print("❌ Error: OPENAI_API_KEY not found in environment.")
+        print("Please set it in your .env file.")
+        return
     
-    # Initialize the tool
-    print("🔧 Initializing VideoUnderstandingTool...")
-    tool = VideoUnderstandingTool(api_key=api_key)
-    
-    # Test video path
+    # Get test video path
     test_video_path = Path(__file__).parent / "test_video.mp4"
     
     if not test_video_path.exists():
-        print(f"❌ Test video not found: {test_video_path}")
-        print("Please place a test video file at the above path")
-        return False
+        print(f"❌ Error: Test video not found at {test_video_path}")
+        print("Please place a test video file named 'test_video.mp4' in the "
+              "integration_tests directory.")
+        return
     
-    print(f"🎬 Analyzing video: {test_video_path}")
-    print("📝 User preference: kapybara, cat, and football")
-    print("📁 Output directory: ~/Downloads/video_understanding")
-    print("-" * 60)
+    print(f"✅ Found test video: {test_video_path}")
+    print(f"✅ API key available: {api_key[:8]}...")
+    print()
     
+    # Initialize tool
+    tool = VideoUnderstandingTool()
+    
+    # Test extraction method
     try:
-        # Run the video understanding tool
-        result = tool.run({
-            "video_path": str(test_video_path),
-            "user_preference": "kapybara, cat, and football",
-            "screenshot_interval": 10.0,
-            "output_dir": "~/Downloads/video_understanding"
-        })
-        
-        # Display results
-        print("✅ Video analysis completed successfully!")
-        print(f"📊 Total scenes analyzed: {result['metadata']['total_scenes']}")
-        print(f"⏱️  Video duration: {result['metadata']['video_duration']}")
-        print(f"📸 Screenshot interval: {result['metadata']['screenshot_interval']}")
-        print()
-        
-        print("🎨 Generated Prompts:")
-        print("=" * 50)
-        for i, (img_prompt, vid_prompt, description) in enumerate(
-            zip(result["image_prompts"], result["video_prompts"], result["scene_descriptions"]), 1
-        ):
-            print(f"Scene {i}: {description}")
-            print(f"Image Prompt: {img_prompt}")
-            print(f"Video Prompt: {vid_prompt}")
-            print(f"Screenshot: {result['screenshot_paths'][i-1]}")
-            print("-" * 30)
-        
-        print("\n📁 Screenshots saved to:")
-        for path in result["screenshot_paths"]:
-            print(f"  - {path}")
-        
-        print(f"\n🔧 Model used: {result['metadata']['model']}")
-        print(f"📊 Tokens used: {result['metadata'].get('tokens_used', 'N/A')}")
-        
-        return True
+        scene_count = test_extraction(tool, test_video_path, args.interval)
+        print(f"\n📊 Results: {scene_count} scenes detected")
+        print("\n✅ Integration test completed successfully!")
         
     except Exception as e:
-        print(f"❌ Analysis failed: {e}")
-        return False
+        print(f"❌ Test failed: {e}")
+        return
 
 
 if __name__ == "__main__":
-    print("🎬 Video Understanding Tool Test")
-    print("=" * 50)
-    
-    success = test_video_understanding()
-    
-    if success:
-        print("\n✅ Test completed successfully!")
-    else:
-        print("\n❌ Test failed!")
+    main()
