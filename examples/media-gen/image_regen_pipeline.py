@@ -1,17 +1,17 @@
 """
-Media regeneration pipeline.
+Image regeneration pipeline.
 
 Command-line tool for regenerating images:
 1. Analyze original image using image understanding
 2. Generate new image based on analysis and user preferences
 
 Usage:
-    python media_gen_pipeline.py --image-path <image_path> 
+    python image_regen_pipeline.py --image-path <image_path> 
     --user-interests <user_interests>
 
 Example:
-    python media_gen_pipeline.py --image-path 
-    ./examples/media-gen/integration_tests/test_image.png 
+    python image_regen_pipeline.py --image-path \
+    ./examples/media-gen/integration_tests/test_image.png \
     --user-interests "Users like cute cats and capybara"
 """
 
