@@ -1,13 +1,16 @@
 # Media Generation Pipeline
 
-A command-line tool for regenerating images using AI-powered image understanding and generation.
+A comprehensive AI-powered media generation and understanding framework for images and videos.
 
 ## Overview
 
-The media regeneration pipeline analyzes an original image and generates a new image based on user interests and preferences. It uses a two-step process:
+The media generation pipeline provides tools for:
+- **Image Understanding**: Analyze images using AI vision capabilities
+- **Image Generation**: Create new images using Replicate
+- **Video Understanding**: Extract and analyze video scenes
+- **Video Generation**: Generate videos from images and prompts
 
-1. **Image Understanding**: Analyzes the original image using AI vision capabilities
-2. **Image Generation**: Creates a new image based on the analysis and user preferences
+## Quick Start
 
 ## Quick Start
 
@@ -19,10 +22,7 @@ The media regeneration pipeline analyzes an original image and generates a new i
    cp env.example .env
    
    # Edit .env with your actual API keys
-OPENAI_API_KEY=your_openai_api_key_here
 REPLICATE_API_TOKEN=your_replicate_api_token_here
-
-# Note: You only need the API key for the generator you plan to use
    ```
 
 2. **Dependencies**: Install required packages:
@@ -48,7 +48,7 @@ python media_gen_pipeline.py --image-path my_image.jpg --user-interests "make it
 - `--output-folder`: Output folder for generated image (default: `~/Downloads`)
 - `--aspect-ratio`: Aspect ratio for generated image (default: `1:1`)
 - `--output-format`: Output format for generated image (default: `png`)
-- `--generator`: Image generation service to use (choices: `openai`, `replicate`, default: `openai`)
+- `--generator`: Image generation service to use (choices: `replicate`, default: `replicate`)
 - `--debug`: Enable debug output to see prompts used in each step
 
 **Full Example:**
@@ -109,8 +109,8 @@ The tool outputs comprehensive information about the regeneration process with c
 ============================================================
 🎨 MEDIA REGENERATION COMPLETE
 ============================================================
-📁 Image stored at: /Users/username/Downloads/openai_generated_image_20241201_143022.png
-   📂 Relative to Downloads: openai_generated_image_20241201_143022.png
+📁 Image stored at: /Users/username/Downloads/replicate_generated_image_20241201_143022.png
+   📂 Relative to Downloads: replicate_generated_image_20241201_143022.png
 
 🔍 Image Analysis:
    This image shows a beautiful landscape with mountains in the background, featuring vibrant colors and dramatic lighting. The scene includes rolling hills, a clear blue sky, and natural elements that create a serene atmosphere.
@@ -121,7 +121,7 @@ The tool outputs comprehensive information about the regeneration process with c
    User preferences: make it more vibrant and modern
 
 📊 Generation Info:
-   model: gpt-4o-mini
+   model: replicate
    tokens_used: 150
    generation_time: 2.3s
 ============================================================
@@ -202,10 +202,10 @@ for i, prompt in enumerate(result["image_prompts"]):
 
 ### Testing Video Understanding
 
-Run the video understanding integration test:
+Run the video understanding test script:
 
 ```bash
-python integration_tests/test_video_understanding_tool.py
+python test_scripts/test_video_understanding_tool.py
 ```
 
 ## Video Generation
@@ -239,10 +239,10 @@ print(f"Video saved to: {result['video_path']}")
 
 ### Testing Video Generation
 
-Run the video generation integration test:
+Run the video generation test script:
 
 ```bash
-python integration_tests/test_replicate_video_gen.py
+python test_scripts/test_replicate_video_gen.py
 ```
 
 ## Future Extensions
@@ -262,17 +262,14 @@ media-gen/
 ├── tools/                   # Media generation tools
 │   ├── image_understanding_tool.py
 │   ├── video_understanding_tool.py
-│   ├── openai_image_gen.py
 │   ├── replicate_image_gen.py
 │   ├── replicate_video_gen.py
-│   ├── dummy_image_gen.py
-│   ├── dummy_video_gen.py
 │   └── media_gen_tool_base.py
-├── tests/                   # Test files
-│   └── test_replicate_video_gen.py
-├── integration_tests/       # Integration test files and examples
+├── tests/                   # Unit test files
+├── test_scripts/           # Test scripts and examples
 │   ├── test_replicate_video_gen.py
-│   └── test_video_understanding_tool.py
+│   ├── test_video_understanding_tool.py
+│   └── test_image.png
 └── ~/Downloads/            # Default output location
 ```
 
@@ -280,12 +277,7 @@ media-gen/
 
 Test with the provided test image:
 
-**Using OpenAI (default):**
-```bash
-python media_gen_pipeline.py --image-path integration_tests/test_image.png --user-interests "enhance the visual appeal"
-```
-
 **Using Replicate:**
 ```bash
-python media_gen_pipeline.py --image-path integration_tests/test_image.png --user-interests "enhance the visual appeal" --generator replicate
+python media_gen_pipeline.py --image-path test_scripts/test_image.png --user-interests "enhance the visual appeal"
 ```
