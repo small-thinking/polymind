@@ -166,10 +166,48 @@ The pipeline uses a modular design with two main components:
 - Simple two-parameter API
 - Path expansion support
 
+## Video Generation
+
+The media generation framework now includes video generation capabilities using the Replicate WAN 2.2 i2v fast model. This allows you to generate videos from images and text prompts.
+
+### Video Generation Example
+
+```python
+from tools.replicate_video_gen import ReplicateVideoGen
+
+# Initialize the video generation tool
+video_gen = ReplicateVideoGen()
+
+# Generate video from image and text prompt
+result = video_gen.run({
+    "image": "path/to/your/image.jpg",
+    "prompt": "A serene landscape with gentle movement and natural lighting",
+    "output_folder": "~/Downloads/polymind_videos",
+    "output_format": "mp4"
+})
+
+print(f"Video saved to: {result['video_path']}")
+```
+
+### Video Generation Parameters
+
+- **image**: Image path, URL, or data URI (required)
+- **prompt**: Text description of the desired video (required)
+- **output_folder**: Folder path where to save the video (optional, default: "~/Downloads")
+- **output_format**: Output format (optional, default: "mp4")
+- **model**: Replicate model to use (optional, overrides default)
+
+### Testing Video Generation
+
+Run the video generation integration test:
+
+```bash
+python integration_tests/test_replicate_video_gen.py
+```
+
 ## Future Extensions
 
 The modular design allows easy extension to other media types:
-- **Image to Video**: Add video generation step
 - **Video Understanding**: Add video analysis capabilities
 - **Multi-modal**: Support for text, audio, and other media
 
@@ -184,9 +222,15 @@ media-gen/
 ├── tools/                   # Media generation tools
 │   ├── image_understanding_tool.py
 │   ├── openai_image_gen.py
+│   ├── replicate_image_gen.py
+│   ├── replicate_video_gen.py
 │   ├── dummy_image_gen.py
+│   ├── dummy_video_gen.py
 │   └── media_gen_tool_base.py
-├── integration_tests/       # Test files and examples
+├── tests/                   # Test files
+│   └── test_replicate_video_gen.py
+├── integration_tests/       # Integration test files and examples
+│   └── test_replicate_video_gen.py
 └── ~/Downloads/            # Default output location
 ```
 
