@@ -34,7 +34,6 @@ except ImportError:
 
 from pipeline import MediaGenerationPipeline, PipelineStep, PipelineStepExecutor
 from tools.image_understanding_tool import ImageUnderstandingTool
-from tools.openai_image_gen import OpenAIImageGen
 from tools.replicate_image_gen import ReplicateImageGen
 
 
@@ -394,7 +393,7 @@ def main():
     )
     parser.add_argument(
         "--generator",
-        choices=["replicate", "openai"],
+        choices=["replicate"],
         default="replicate",
         help="Image generation service to use (default: replicate)"
     )
@@ -421,11 +420,8 @@ def main():
         # Initialize tools
         image_understanding = ImageUnderstandingTool()
         
-        # Choose image generation tool
-        if args.generator == "replicate":
-            image_gen = ReplicateImageGen()
-        else:
-            image_gen = OpenAIImageGen()
+        # Initialize image generation tool
+        image_gen = ReplicateImageGen()
         
         # Create pipeline
         pipeline = MediaRegenerationPipeline(
