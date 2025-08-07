@@ -9,14 +9,13 @@ for analysis.
 
 import json
 import os
-from typing import Any, Dict, List, Optional, ClassVar
+from typing import Any, ClassVar, Dict, List, Optional
 
 from openai import OpenAI
+from utils.video_utils import ScreenshotInfo, extract_screenshots
 
 from polymind.core.tool import BaseTool, Param
 from polymind.core.utils import encode_image_to_base64
-
-from utils.video_utils import extract_screenshots, ScreenshotInfo
 
 
 class VideoUnderstandingTool(BaseTool):

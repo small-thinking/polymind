@@ -7,10 +7,10 @@ coherent image generation prompts.
 """
 
 import os
+import sys
 import unittest
 from unittest.mock import Mock, patch
 
-import sys
 from pathlib import Path
 
 # Add the parent directory to the path

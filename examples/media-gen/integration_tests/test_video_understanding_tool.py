@@ -7,6 +7,7 @@ and user preference for kapybara, cat, and football.
 
 import os
 import sys
+
 from pathlib import Path
 
 # Add the parent directory to the path to import the tool
