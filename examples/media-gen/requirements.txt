@@ -15,4 +15,8 @@ python-dotenv  # For environment variable management
 anthropic  # For Claude integration
 openai  # For OpenAI integration
 replicate  # For Replicate integration
-requests  # For downloading images from URLs 
+requests  # For downloading images from URLs
+
+# Video processing dependencies
+opencv-python==4.8.1.78  # For video screenshot extraction (compatible with numpy 1.26.0)
+numpy==1.26.0  # Required by polymind and compatible with opencv-python 4.8.1.78
