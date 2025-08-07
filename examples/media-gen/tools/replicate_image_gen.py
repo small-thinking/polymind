@@ -55,6 +55,7 @@ class ReplicateImageGen(ImageGenerationTool):
                 - seed: Random seed for reproducible results (optional)
                 - aspect_ratio: Image aspect ratio (optional, default: "4:3")
                 - output_format: Output format (optional, default: "jpeg")
+                - quality: Image quality (optional, default: 80)
                 - model: Replicate model to use (optional, overrides default)
         
         Returns:
@@ -68,6 +69,7 @@ class ReplicateImageGen(ImageGenerationTool):
         seed = input.get("seed")
         aspect_ratio = input.get("aspect_ratio", "4:3")
         output_format = input.get("output_format", "jpeg")
+        quality = input.get("quality", 80)
         model = input.get("model", self._model)
         
         # Generate dynamic image name with timestamp to avoid duplication
@@ -91,7 +93,8 @@ class ReplicateImageGen(ImageGenerationTool):
         # Prepare input for Replicate
         replicate_input = {
             "prompt": prompt,
-            "aspect_ratio": aspect_ratio
+            "aspect_ratio": aspect_ratio,
+            "quality": quality
         }
         
         # Add seed if provided
