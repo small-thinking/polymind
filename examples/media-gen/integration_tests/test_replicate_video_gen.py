@@ -22,8 +22,9 @@ Requirements:
 
 import os
 import sys
-from pathlib import Path
+
 from dotenv import load_dotenv
+from pathlib import Path
 
 # Add parent directory to path for imports
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))

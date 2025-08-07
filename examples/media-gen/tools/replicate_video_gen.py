@@ -7,13 +7,13 @@ with the Polymind framework and supports image-to-video generation with
 text prompts.
 """
 
-import os
 import base64
-from pathlib import Path
+import os
 from typing import Union
 
 import replicate
 import requests
+from pathlib import Path
 
 from polymind.core.message import Message
 

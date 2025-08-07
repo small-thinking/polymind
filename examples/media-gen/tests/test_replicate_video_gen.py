@@ -13,9 +13,10 @@ Requirements:
 - Test image file: tests/test_image.png
 """
 
+import base64
 import os
 import sys
-import base64
+
 from pathlib import Path
 
 # Add parent directory to path for imports
