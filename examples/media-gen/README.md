@@ -166,9 +166,49 @@ The pipeline uses a modular design with two main components:
 - Simple two-parameter API
 - Path expansion support
 
-## Video Generation
+## Video Understanding
 
-The media generation framework now includes video generation capabilities using the Replicate WAN 2.2 i2v fast model. This allows you to generate videos from images and text prompts.
+The media generation framework includes video understanding capabilities that analyze videos by extracting screenshots and generating coherent image generation prompts for each scene. This is useful for creating video-to-image pipelines where each scene can be regenerated as an image.
+
+### Video Understanding Example
+
+```python
+from tools.video_understanding_tool import VideoUnderstandingTool
+
+# Initialize the video understanding tool
+video_understanding = VideoUnderstandingTool()
+
+# Analyze video and generate image prompts
+result = video_understanding.run({
+    "video_path": "path/to/your/video.mp4",
+    "user_preference": "Create cinematic image prompts with dramatic lighting",
+    "screenshot_interval": 2.0,
+    "output_dir": "~/Downloads/video_screenshots"
+})
+
+# Access the generated prompts
+for i, prompt in enumerate(result["image_prompts"]):
+    print(f"Scene {i+1}: {prompt}")
+    print(f"Description: {result['scene_descriptions'][i]}")
+```
+
+### Video Understanding Parameters
+
+- **video_path**: Path to the video file to analyze (required)
+- **user_preference**: User's preference for generated image prompts (optional)
+- **screenshot_interval**: Time interval between screenshots in seconds (optional, default: 2.0)
+- **output_dir**: Directory to save extracted screenshots (optional, default: ~/Downloads)
+- **max_tokens**: Maximum tokens in response (optional, default: 2000)
+
+### Testing Video Understanding
+
+Run the video understanding integration test:
+
+```bash
+python integration_tests/test_video_understanding_tool.py
+```
+
+## Video Generation
 
 ### Video Generation Example
 
@@ -221,6 +261,7 @@ media-gen/
 ├── env.example              # Environment variables template
 ├── tools/                   # Media generation tools
 │   ├── image_understanding_tool.py
+│   ├── video_understanding_tool.py
 │   ├── openai_image_gen.py
 │   ├── replicate_image_gen.py
 │   ├── replicate_video_gen.py
@@ -230,7 +271,8 @@ media-gen/
 ├── tests/                   # Test files
 │   └── test_replicate_video_gen.py
 ├── integration_tests/       # Integration test files and examples
-│   └── test_replicate_video_gen.py
+│   ├── test_replicate_video_gen.py
+│   └── test_video_understanding_tool.py
 └── ~/Downloads/            # Default output location
 ```
 
