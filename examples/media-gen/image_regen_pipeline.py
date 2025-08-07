@@ -32,9 +32,7 @@ except ImportError:
     # dotenv not installed, continue without it
     pass
 
-from pipeline import (
-    MediaGenerationPipeline, PipelineStep, PipelineStepExecutor
-)
+from pipeline import MediaGenerationPipeline, PipelineStep, PipelineStepExecutor
 from tools.image_understanding_tool import ImageUnderstandingTool
 from tools.replicate_image_gen import ReplicateImageGen
 
