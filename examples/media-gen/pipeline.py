@@ -7,8 +7,8 @@ input/output mappings and allows easy addition of new pipeline steps.
 """
 
 import logging
-from typing import Any, Dict, List, Optional, Callable, Union
 from dataclasses import dataclass
+from typing import Any, Callable, Dict, List, Optional, Union
 
 from polymind.core.tool import BaseTool
 

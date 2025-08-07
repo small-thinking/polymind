@@ -20,8 +20,9 @@ import json
 import logging
 import os
 import sys
-from pathlib import Path
 from typing import Any, Dict
+
+from pathlib import Path
 
 # Load environment variables from .env file if it exists
 try:
@@ -31,14 +32,10 @@ except ImportError:
     # dotenv not installed, continue without it
     pass
 
+from pipeline import MediaGenerationPipeline, PipelineStep, PipelineStepExecutor
 from tools.image_understanding_tool import ImageUnderstandingTool
 from tools.openai_image_gen import OpenAIImageGen
 from tools.replicate_image_gen import ReplicateImageGen
-from pipeline import (
-    MediaGenerationPipeline, 
-    PipelineStep, 
-    PipelineStepExecutor
-)
 
 
 def expand_path(path: str) -> str:
