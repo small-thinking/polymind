@@ -48,8 +48,8 @@ class VideoUnderstandingTool(BaseTool):
         5. Ensure prompts work together to tell a coherent visual story
         
         For each screenshot, provide:
-        - A detailed image generation prompt
-        - A detailed image to video generation prompt
+        - A detailed image generation prompt, including the scene, object, lighting, and image aesthetic style
+        - A detailed image to video generation prompt, including the potential action of each objects
 
         Both should be <100 words.
         

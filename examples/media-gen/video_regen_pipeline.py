@@ -33,15 +33,11 @@ except ImportError:
     # dotenv not installed, continue without it
     pass
 
-from pipeline import (
-    MediaGenerationPipeline, 
-    PipelineStep, 
-    PipelineStepExecutor
-)
-from tools.video_understanding_tool import VideoUnderstandingTool
+from pipeline import MediaGenerationPipeline, PipelineStep, PipelineStepExecutor
 from tools.openai_image_gen import OpenAIImageGen
 from tools.replicate_image_gen import ReplicateImageGen
 from tools.replicate_video_gen import ReplicateVideoGen
+from tools.video_understanding_tool import VideoUnderstandingTool
 
 
 def expand_path(path: str) -> str:
@@ -299,7 +295,7 @@ class VideoRegenerationPipeline(MediaGenerationPipeline):
             # Create a simple text-based fallback image
             try:
                 from PIL import Image, ImageDraw, ImageFont
-                
+
                 # Create a simple image with the prompt text
                 img = Image.new('RGB', (512, 512), color='#2c3e50')
                 draw = ImageDraw.Draw(img)
