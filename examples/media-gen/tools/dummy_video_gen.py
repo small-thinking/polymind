@@ -46,6 +46,7 @@ class DummyVideoGen(VideoGenerationTool):
                 - prompt: Text description of the desired video
                 - num_frames: Number of frames (optional, default: 81)
                 - resolution: Video resolution (optional, default: "480p")
+                - aspect_ratio: Video aspect ratio (optional, default: "9:16")
                 - image: URI of starting image (optional)
         
         Returns:
@@ -57,6 +58,7 @@ class DummyVideoGen(VideoGenerationTool):
         prompt = input.get("prompt", "")
         num_frames = input.get("num_frames", 81)
         resolution = input.get("resolution", "480p")
+        aspect_ratio = input.get("aspect_ratio", "9:16")
         image = input.get("image", None)
         
         # Return hardcoded dummy video path and metadata
@@ -67,6 +69,7 @@ class DummyVideoGen(VideoGenerationTool):
             "prompt": prompt,
             "num_frames": str(num_frames),
             "resolution": resolution,
+            "aspect_ratio": aspect_ratio,
             "seed": "67890",
             "status": "generated (dummy)"
         }

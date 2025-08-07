@@ -105,6 +105,7 @@ class ReplicateVideoGen(VideoGenerationTool):
             "output_folder", str(Path.home() / "Downloads")
         )
         output_format = input.get("output_format", "mp4")
+        aspect_ratio = input.get("aspect_ratio", "9:16")
         model = input.get("model", self._model)
         timeout = input.get("timeout", 300)  # 5 minutes default
         progress_interval = input.get("progress_interval", 5)  # 5 seconds default
@@ -166,7 +167,8 @@ class ReplicateVideoGen(VideoGenerationTool):
                 # Prepare input for Replicate
                 replicate_input = {
                     "image": prepared_image,
-                    "prompt": single_prompt
+                    "prompt": single_prompt,
+                    "aspect_ratio": aspect_ratio
                 }
                 
                 # Ensure directory exists
@@ -233,6 +235,7 @@ class ReplicateVideoGen(VideoGenerationTool):
                         "model": model,
                         "prompt": single_prompt,
                         "image_input": str(single_image),
+                        "aspect_ratio": aspect_ratio,
                         "format": output_format,
                         "status": "generated successfully",
                         "prediction_id": prediction.id,
@@ -257,6 +260,7 @@ class ReplicateVideoGen(VideoGenerationTool):
                         "model": model,
                         "prompt": single_prompt,
                         "image_input": str(single_image),
+                        "aspect_ratio": aspect_ratio,
                         "format": output_format,
                         "status": "generated successfully",
                         "prediction_id": prediction.id,
@@ -281,6 +285,7 @@ class ReplicateVideoGen(VideoGenerationTool):
                         "model": model,
                         "prompt": single_prompt,
                         "image_input": str(single_image),
+                        "aspect_ratio": aspect_ratio,
                         "format": output_format,
                         "status": "generated successfully",
                         "prediction_id": prediction.id,

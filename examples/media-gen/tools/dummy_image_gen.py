@@ -56,7 +56,7 @@ class DummyImageGen(ImageGenerationTool):
         """
         # Extract parameters with defaults
         prompt = input.get("prompt", "")
-        aspect_ratio = input.get("aspect_ratio", "4:3")
+        aspect_ratio = input.get("aspect_ratio", "9:16")
         output_format = input.get("output_format", "jpg")
         output_folder = input.get("output_folder", str(Path.home() / "Downloads"))
         

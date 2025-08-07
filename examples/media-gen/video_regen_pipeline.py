@@ -143,7 +143,7 @@ class VideoRegenerationPipeline(MediaGenerationPipeline):
         user_interests: str,
         output_folder: str = "~/Downloads",
         screenshot_interval: float = 10.0,
-        aspect_ratio: str = "1:1",
+        aspect_ratio: str = "9:16",
         output_format: str = "mp4"
     ) -> Dict[str, Any]:
         """
@@ -379,7 +379,8 @@ class VideoRegenerationPipeline(MediaGenerationPipeline):
             "image": generated_images,
             "prompt": video_prompts,
             "output_folder": video_output_folder,
-            "output_format": output_format
+            "output_format": output_format,
+            "aspect_ratio": tool_input.get("aspect_ratio", "9:16")
         }
     
     def _extract_video_paths(

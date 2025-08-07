@@ -67,7 +67,7 @@ class ReplicateImageGen(ImageGenerationTool):
         prompt = input.get("prompt", "")
         output_folder = input.get("output_folder", str(Path.home() / "Downloads"))
         seed = input.get("seed")
-        aspect_ratio = input.get("aspect_ratio", "4:3")
+        aspect_ratio = input.get("aspect_ratio", "9:16")
         output_format = input.get("output_format", "jpeg")
         quality = input.get("quality", 80)
         model = input.get("model", self._model)

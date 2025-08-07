@@ -143,6 +143,13 @@ class VideoGenerationTool(BaseTool, ABC):
                 required=False,
                 description="URI of an image to use as starting point",
                 example="https://example.com/starting_image.jpg"
+            ),
+            Param(
+                name="aspect_ratio",
+                type="str",
+                required=False,
+                description="Aspect ratio of the generated video (e.g., '9:16', '16:9')",
+                example="9:16"
             )
         ]
 
@@ -176,6 +183,7 @@ class VideoGenerationTool(BaseTool, ABC):
                 - num_frames: Number of frames (optional, default: 81)
                 - resolution: Video resolution (optional, default: "480p")
                 - image: URI of starting image (optional)
+                - aspect_ratio: Video aspect ratio (optional, default: "9:16")
         
         Returns:
             dict: Dictionary containing:
