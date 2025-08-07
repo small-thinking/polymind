@@ -80,13 +80,13 @@ class ReplicateVideoGen(VideoGenerationTool):
 
     def run(self, input: dict) -> dict:
         """
-        Generate a video using Replicate WAN 2.2 i2v fast API with progress monitoring.
+        Generate videos using Replicate WAN 2.2 i2v fast API with progress monitoring.
         
         Args:
             input (dict): Input parameters containing:
-                - image: Image path, URL, or data URI (required)
-                - prompt: Text description of the desired video (required)
-                - output_folder: Folder path where to save the video 
+                - image: Image path(s), URL(s), or data URI(s) - can be string or list (required)
+                - prompt: Text description(s) of the desired video(s) - can be string or list (required)
+                - output_folder: Folder path where to save the video(s) 
                   (optional, default: "~/Downloads")
                 - output_format: Output format (optional, default: "mp4")
                 - model: Replicate model to use (optional, overrides default)
@@ -95,8 +95,8 @@ class ReplicateVideoGen(VideoGenerationTool):
         
         Returns:
             dict: Dictionary containing:
-                - video_path: Path to the generated video file
-                - generation_info: Generation metadata
+                - generated_video_paths: List of paths to generated video files
+                - video_generation_info: List of generation metadata for each video
         """
         # Extract parameters with defaults
         image_input = input.get("image", "")
@@ -109,171 +109,206 @@ class ReplicateVideoGen(VideoGenerationTool):
         timeout = input.get("timeout", 300)  # 5 minutes default
         progress_interval = input.get("progress_interval", 5)  # 5 seconds default
         
-        if not image_input:
-            raise ValueError("Image input is required")
+        # Handle both single and multiple inputs
+        if isinstance(image_input, str):
+            images = [image_input]
+        elif isinstance(image_input, list):
+            images = image_input
+        else:
+            raise ValueError("Image input must be a string or list of strings")
         
-        if not prompt:
-            raise ValueError("Text prompt is required")
+        if isinstance(prompt, str):
+            prompts = [prompt]
+        elif isinstance(prompt, list):
+            prompts = prompt
+        else:
+            raise ValueError("Prompt must be a string or list of strings")
         
-        # Generate dynamic video name with timestamp to avoid duplication
-        import datetime
-        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        base_name = f"replicate_generated_video_{timestamp}"
-        video_name = f"{base_name}.{output_format}"
-        
-        # Ensure unique filename
-        counter = 1
-        full_path = f"{output_folder.rstrip('/')}/{video_name}"
-        while os.path.exists(full_path):
-            video_name = f"{base_name}_{counter}.{output_format}"
-            full_path = f"{output_folder.rstrip('/')}/{video_name}"
-            counter += 1
-        
-        # Create full path
-        video_path = f"{output_folder.rstrip('/')}/{video_name}"
-        
-        try:
-            # Prepare image input
-            prepared_image = self._prepare_image_input(image_input)
-            
-            # Prepare input for Replicate
-            replicate_input = {
-                "image": prepared_image,
-                "prompt": prompt
-            }
-            
-            # Ensure directory exists
-            output_path = Path(video_path)
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-            
-            # Create prediction in background
-            import time
-            start_time = time.time()
-            
-            # Create prediction using the model string directly
-            prediction = replicate.predictions.create(
-                model=model,
-                input=replicate_input
+        # Ensure we have matching numbers of images and prompts
+        if len(images) != len(prompts):
+            raise ValueError(
+                f"Number of images ({len(images)}) must match number of "
+                f"prompts ({len(prompts)})"
             )
-            
-            print(f"🔄 Started video generation (ID: {prediction.id})")
-            
-            # Monitor progress with timeout
-            last_progress_time = start_time
-            while True:
-                # Check timeout
-                if time.time() - start_time > timeout:
-                    prediction.cancel()
-                    raise TimeoutError(
-                        f"Video generation timed out after {timeout} seconds"
-                    )
+        
+        generated_videos = []
+        generation_info = []
+        
+        # Process each image-prompt pair
+        for i, (single_image, single_prompt) in enumerate(zip(images, prompts)):
+            try:
+                if not single_image:
+                    raise ValueError("Image input is required")
                 
-                # Reload prediction to get latest status
-                prediction.reload()
+                if not single_prompt:
+                    raise ValueError("Text prompt is required")
                 
-                # Print progress updates
-                if time.time() - last_progress_time >= progress_interval:
-                    elapsed = int(time.time() - start_time)
-                    print(f"⏱️  Status: {prediction.status} (elapsed: {elapsed}s)")
-                    if prediction.logs:
-                        print(f"📝 Logs: {prediction.logs[-200:]}...")  # Last 200 chars
-                    last_progress_time = time.time()
+                # Generate dynamic video name with timestamp to avoid duplication
+                import datetime
+                timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+                base_name = f"replicate_generated_video_{timestamp}_{i+1}"
+                video_name = f"{base_name}.{output_format}"
                 
-                # Check if completed
-                if prediction.status == "succeeded":
-                    print("✅ Video generation completed!")
-                    break
-                elif prediction.status == "failed":
-                    raise Exception(f"Video generation failed: {prediction.error}")
-                elif prediction.status == "canceled":
-                    raise Exception("Video generation was canceled")
+                # Ensure unique filename
+                counter = 1
+                full_path = f"{output_folder.rstrip('/')}/{video_name}"
+                while os.path.exists(full_path):
+                    video_name = f"{base_name}_{counter}.{output_format}"
+                    full_path = f"{output_folder.rstrip('/')}/{video_name}"
+                    counter += 1
                 
-                # Wait before next check
-                time.sleep(2)
-            
-            # Download the result
-            if hasattr(prediction.output, 'read'):
-                # Output is a FileOutput object
-                with open(video_path, "wb") as file:
-                    file.write(prediction.output.read())
+                # Create full path
+                video_path = f"{output_folder.rstrip('/')}/{video_name}"
                 
-                return {
-                    "video_path": video_path,
-                    "generation_info": {
+                # Prepare image input
+                prepared_image = self._prepare_image_input(single_image)
+                
+                # Prepare input for Replicate
+                replicate_input = {
+                    "image": prepared_image,
+                    "prompt": single_prompt
+                }
+                
+                # Ensure directory exists
+                output_path = Path(video_path)
+                output_path.parent.mkdir(parents=True, exist_ok=True)
+                
+                # Create prediction in background
+                import time
+                start_time = time.time()
+                
+                # Create prediction using the model string directly
+                prediction = replicate.predictions.create(
+                    model=model,
+                    input=replicate_input
+                )
+                
+                print(f"🔄 Started video generation {i+1} (ID: {prediction.id})")
+                
+                # Monitor progress with timeout
+                last_progress_time = start_time
+                while True:
+                    # Check timeout
+                    if time.time() - start_time > timeout:
+                        prediction.cancel()
+                        raise TimeoutError(
+                            f"Video generation {i+1} timed out after {timeout} "
+                            "seconds"
+                        )
+                    
+                    # Reload prediction to get latest status
+                    prediction.reload()
+                    
+                    # Print progress updates
+                    if time.time() - last_progress_time >= progress_interval:
+                        elapsed = int(time.time() - start_time)
+                        print(f"⏱️  Video {i+1} Status: {prediction.status} "
+                              f"(elapsed: {elapsed}s)")
+                        if prediction.logs:
+                            print(f"📝 Logs: {prediction.logs[-200:]}...")
+                        last_progress_time = time.time()
+                    
+                    # Check if completed
+                    if prediction.status == "succeeded":
+                        print(f"✅ Video generation {i+1} completed!")
+                        break
+                    elif prediction.status == "failed":
+                        raise Exception(
+                            f"Video generation {i+1} failed: {prediction.error}"
+                        )
+                    elif prediction.status == "canceled":
+                        raise Exception(f"Video generation {i+1} was canceled")
+                    
+                    # Wait before next check
+                    time.sleep(2)
+                
+                # Download the result
+                if hasattr(prediction.output, 'read'):
+                    # Output is a FileOutput object
+                    with open(video_path, "wb") as file:
+                        file.write(prediction.output.read())
+                    
+                    generated_videos.append(video_path)
+                    generation_info.append({
                         "model": model,
-                        "prompt": prompt,
-                        "image_input": str(image_input),
+                        "prompt": single_prompt,
+                        "image_input": str(single_image),
                         "format": output_format,
                         "status": "generated successfully",
                         "prediction_id": prediction.id,
                         "replicate_url": None,
                         "elapsed_time": int(time.time() - start_time)
-                    }
-                }
-            elif isinstance(prediction.output, list) and len(prediction.output) > 0:
-                # Output is a list of URLs
-                video_url = prediction.output[0]
-                
-                # Download the video
-                response = requests.get(video_url)
-                response.raise_for_status()
-                
-                # Save the video
-                with open(video_path, "wb") as file:
-                    file.write(response.content)
-                
-                return {
-                    "video_path": video_path,
-                    "generation_info": {
+                    })
+                    
+                elif isinstance(prediction.output, list) and len(prediction.output) > 0:
+                    # Output is a list of URLs
+                    video_url = prediction.output[0]
+                    
+                    # Download the video
+                    response = requests.get(video_url)
+                    response.raise_for_status()
+                    
+                    # Save the video
+                    with open(video_path, "wb") as file:
+                        file.write(response.content)
+                    
+                    generated_videos.append(video_path)
+                    generation_info.append({
                         "model": model,
-                        "prompt": prompt,
-                        "image_input": str(image_input),
+                        "prompt": single_prompt,
+                        "image_input": str(single_image),
                         "format": output_format,
                         "status": "generated successfully",
                         "prediction_id": prediction.id,
                         "replicate_url": video_url,
                         "elapsed_time": int(time.time() - start_time)
-                    }
-                }
-            elif isinstance(prediction.output, str):
-                # Output is a direct URL string
-                video_url = prediction.output
-                
-                # Download the video
-                response = requests.get(video_url)
-                response.raise_for_status()
-                
-                # Save the video
-                with open(video_path, "wb") as file:
-                    file.write(response.content)
-                
-                return {
-                    "video_path": video_path,
-                    "generation_info": {
+                    })
+                    
+                elif isinstance(prediction.output, str):
+                    # Output is a direct URL string
+                    video_url = prediction.output
+                    
+                    # Download the video
+                    response = requests.get(video_url)
+                    response.raise_for_status()
+                    
+                    # Save the video
+                    with open(video_path, "wb") as file:
+                        file.write(response.content)
+                    
+                    generated_videos.append(video_path)
+                    generation_info.append({
                         "model": model,
-                        "prompt": prompt,
-                        "image_input": str(image_input),
+                        "prompt": single_prompt,
+                        "image_input": str(single_image),
                         "format": output_format,
                         "status": "generated successfully",
                         "prediction_id": prediction.id,
                         "replicate_url": video_url,
                         "elapsed_time": int(time.time() - start_time)
-                    }
-                }
-            else:
-                raise ValueError(f"Unexpected output format from Replicate: {type(prediction.output)}")
-            
-        except Exception as e:
-            return {
-                "video_path": "",
-                "generation_info": {
+                    })
+                    
+                else:
+                    raise ValueError(
+                        f"Unexpected output format from Replicate: "
+                        f"{type(prediction.output)}"
+                    )
+                
+            except Exception as e:
+                # Add empty path and error info for failed generation
+                generated_videos.append("")
+                generation_info.append({
                     "model": model,
-                    "prompt": prompt,
-                    "image_input": str(image_input),
+                    "prompt": single_prompt if 'single_prompt' in locals() else "",
+                    "image_input": str(single_image) if 'single_image' in locals() else "",
                     "error": str(e),
                     "status": "generation failed"
-                }
-            }
+                })
+        
+        return {
+            "generated_video_paths": generated_videos,
+            "video_generation_info": generation_info
+        }
 
     async def _execute(self, input: Message) -> Message:
         """
