@@ -46,10 +46,13 @@ class VideoUnderstandingTool(BaseTool):
         4. Include relevant details like lighting, composition, mood, and 
            style
         5. Ensure prompts work together to tell a coherent visual story
+        6. Ignore the text in the screenshot, if they are about the brand. Only keep non-branding words.
         
         For each screenshot, provide:
-        - A detailed image generation prompt, including the scene, object, lighting, and image aesthetic style
-        - A detailed image to video generation prompt, including the potential action of each objects
+        - A detailed image generation prompt, including the scene, object, lighting, camera (e.g. overhead, close-up, etc.) 
+            and image aesthetic style (cartoon, realistic, cyberpunk, etc.)
+        - A detailed image to video generation prompt, including the potential action of each objects, 
+            and the camera movement (e.g. pan, zoom, etc.)
 
         Both should be <100 words.
         
