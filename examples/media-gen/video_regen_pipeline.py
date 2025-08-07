@@ -84,7 +84,10 @@ class VideoRegenerationPipeline(MediaGenerationPipeline):
                 input_mapping={
                     "original_video": "video_path",
                     "user_preferences": "user_preference",
+                    "extraction_mode": "extraction_mode",
                     "screenshot_interval": "screenshot_interval",
+                    "keyframe_threshold": "keyframe_threshold",
+                    "min_interval_frames": "min_interval_frames",
                     "output_dir": "output_dir"
                 },
                 output_mapping={
@@ -142,7 +145,10 @@ class VideoRegenerationPipeline(MediaGenerationPipeline):
         video_path: str,
         user_interests: str,
         output_folder: str = "~/Downloads",
+        extraction_mode: str = "interval",
         screenshot_interval: float = 10.0,
+        keyframe_threshold: float = 30.0,
+        min_interval_frames: int = 30,
         aspect_ratio: str = "9:16",
         output_format: str = "mp4"
     ) -> Dict[str, Any]:
@@ -154,7 +160,10 @@ class VideoRegenerationPipeline(MediaGenerationPipeline):
             user_interests: User preferences for regeneration
             output_folder: Folder to save generated videos 
                           (default: ~/Downloads)
-            screenshot_interval: Time interval between screenshots
+            extraction_mode: 'interval' or 'keyframe' (default: 'interval')
+            screenshot_interval: Time interval between screenshots (for interval mode)
+            keyframe_threshold: Threshold for keyframe detection (for keyframe mode)
+            min_interval_frames: Minimum frames between keyframes (for keyframe mode)
             aspect_ratio: Aspect ratio for generated images
             output_format: Output format for generated videos
             
@@ -173,7 +182,10 @@ class VideoRegenerationPipeline(MediaGenerationPipeline):
         input_data = {
             "original_video": video_path,
             "user_preferences": user_interests,
+            "extraction_mode": extraction_mode,
             "screenshot_interval": screenshot_interval,
+            "keyframe_threshold": keyframe_threshold,
+            "min_interval_frames": min_interval_frames,
             "output_dir": f"{session_folder}/video_analysis",
             "output_folder": session_folder,
             "aspect_ratio": aspect_ratio,
@@ -450,7 +462,14 @@ class VideoRegenerationPipeline(MediaGenerationPipeline):
         if self.debug:
             print("\n🔍 DEBUG - Initial Pipeline Input:")
             for key, value in input_data.items():
-                print(f"   {key}: {value}")
+                if isinstance(value, list) and len(value) > 3:
+                    print(f"   {key}: {len(value)} items")
+                    for j, item in enumerate(value[:3]):
+                        print(f"     {j+1}: {str(item)[:100]}...")
+                    if len(value) > 3:
+                        print(f"     ... and {len(value) - 3} more")
+                else:
+                    print(f"   {key}: {value}")
         
         # Run the parent pipeline with custom execution
         self.logger.info(
@@ -573,10 +592,28 @@ def main():
         help="Output folder for generated videos (default: ~/Downloads)"
     )
     parser.add_argument(
+        "--extraction-mode",
+        choices=["interval", "keyframe"],
+        default="interval",
+        help="Extraction mode: 'interval' for regular intervals or 'keyframe' for scene changes (default: interval)"
+    )
+    parser.add_argument(
         "--screenshot-interval",
         type=float,
         default=10.0,
-        help="Time interval between screenshots in seconds (default: 10.0)"
+        help="Time interval between screenshots in seconds (for interval mode, default: 10.0)"
+    )
+    parser.add_argument(
+        "--keyframe-threshold",
+        type=float,
+        default=30.0,
+        help="Threshold for keyframe detection (for keyframe mode, default: 30.0)"
+    )
+    parser.add_argument(
+        "--min-interval-frames",
+        type=int,
+        default=30,
+        help="Minimum frames between keyframes (for keyframe mode, default: 30)"
     )
     parser.add_argument(
         "--aspect-ratio",
@@ -632,6 +669,12 @@ def main():
     print(f"📹 Input video: {expanded_video_path}")
     print(f"🎯 User interests: {args.user_interests}")
     print(f"📁 Output folder: {expand_path(args.output_folder)}")
+    print(f"🔍 Extraction mode: {args.extraction_mode}")
+    if args.extraction_mode == "interval":
+        print(f"⏱️  Screenshot interval: {args.screenshot_interval}s")
+    else:
+        print(f"🎯 Keyframe threshold: {args.keyframe_threshold}")
+        print(f"📏 Min interval frames: {args.min_interval_frames}")
     print(f"⚙️  Image generator: {args.image_generator}")
     print(f"🔧 Debug mode: {args.debug}")
     print("⏱️  Estimated time: 5-15 minutes (depends on video length)")
@@ -663,7 +706,10 @@ def main():
             video_path=args.video_path,
             user_interests=args.user_interests,
             output_folder=args.output_folder,
+            extraction_mode=args.extraction_mode,
             screenshot_interval=args.screenshot_interval,
+            keyframe_threshold=args.keyframe_threshold,
+            min_interval_frames=args.min_interval_frames,
             aspect_ratio=args.aspect_ratio,
             output_format=args.output_format
         )
@@ -702,10 +748,19 @@ def main():
             print(f"   Total scenes: {total_scenes}")
             video_duration = video_analysis.get('video_duration', 'Unknown')
             print(f"   Video duration: {video_duration}")
-            screenshot_interval = video_analysis.get(
-                'screenshot_interval', 'Unknown'
-            )
-            print(f"   Screenshot interval: {screenshot_interval}")
+            extraction_mode = video_analysis.get('extraction_mode', 'Unknown')
+            print(f"   Extraction mode: {extraction_mode}")
+            
+            if extraction_mode == "keyframe":
+                keyframe_threshold = video_analysis.get('keyframe_threshold', 'Unknown')
+                min_interval_frames = video_analysis.get('min_interval_frames', 'Unknown')
+                print(f"   Keyframe threshold: {keyframe_threshold}")
+                print(f"   Min interval frames: {min_interval_frames}")
+            else:
+                screenshot_interval = video_analysis.get(
+                    'screenshot_interval', 'Unknown'
+                )
+                print(f"   Screenshot interval: {screenshot_interval}")
         
         # Get scene descriptions
         scene_descriptions = result.get('scene_descriptions', [])

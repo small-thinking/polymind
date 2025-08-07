@@ -12,7 +12,7 @@ import os
 from typing import Any, ClassVar, Dict, List, Optional
 
 from openai import OpenAI
-from utils.video_utils import ScreenshotInfo, extract_screenshots
+from utils.video_utils import ScreenshotInfo, extract_key_frames, extract_screenshots
 
 from polymind.core.tool import BaseTool, Param
 from polymind.core.utils import encode_image_to_base64
@@ -22,10 +22,10 @@ class VideoUnderstandingTool(BaseTool):
     """
     Tool for video understanding using OpenAI's GPT-4o-mini API.
     
-    This tool extracts screenshots from videos at regular intervals and
-    generates coherent image generation prompts for each scene. The prompts
-    are designed to work together to create a logical sequence of images
-    that can be used for video generation.
+    This tool extracts screenshots from videos using either interval-based
+    or keyframe-based extraction and generates coherent image generation 
+    prompts for each scene. The prompts are designed to work together to 
+    create a logical sequence of images that can be used for video generation.
     """
 
     api_key: Optional[str] = None
@@ -98,119 +98,174 @@ class VideoUnderstandingTool(BaseTool):
                 "Video understanding and scene analysis tool",
                 "AI tool for generating coherent image prompts from video "
                 "scenes"
-            ],
-            api_key=api_key,
-            model=model,
-            **kwargs
+            ]
         )
         
-        # Initialize the OpenAI client
-        self.client = OpenAI(api_key=self.api_key)
+        self.api_key = api_key
+        self.model = model
+        
+        # Initialize OpenAI client
+        self.client = OpenAI(api_key=api_key)
 
     def input_spec(self) -> List[Param]:
-        """Define the input parameters for video understanding."""
+        """
+        Define the input specification for the tool.
+        
+        Returns:
+            List[Param]: List of input parameters
+        """
         return [
             Param(
                 name="video_path",
-                type="str",
-                required=True,
+                type="string",
                 description="Path to the video file to analyze",
-                example="/path/to/video.mp4"
+                required=True
             ),
             Param(
                 name="user_preference",
-                type="str",
+                type="string",
+                description="User's preference for image generation style and content",
                 required=False,
-                description=(
-                    "User's preference for the generated image prompts "
-                    "(style, theme, etc.)"
-                ),
-                example="Create prompts in a cinematic style with dramatic lighting"
+                default="Create detailed, cinematic image generation prompts"
+            ),
+            Param(
+                name="extraction_mode",
+                type="string",
+                description="Extraction mode: 'interval' for regular intervals or 'keyframe' for scene changes",
+                required=False,
+                default="interval"
             ),
             Param(
                 name="screenshot_interval",
-                type="float",
+                type="number",
+                description="Time interval between screenshots (for interval mode)",
                 required=False,
-                description="Time interval between screenshots in seconds "
-                           "(default: 10.0)",
-                example="10.0"
+                default=10.0
+            ),
+            Param(
+                name="keyframe_threshold",
+                type="number",
+                description="Threshold for keyframe detection (for keyframe mode)",
+                required=False,
+                default=30.0
+            ),
+            Param(
+                name="min_interval_frames",
+                type="number",
+                description="Minimum frames between keyframes (for keyframe mode)",
+                required=False,
+                default=30
             ),
             Param(
                 name="output_dir",
-                type="str",
+                type="string",
+                description="Directory to save extracted screenshots",
                 required=False,
-                description="Directory to save extracted screenshots (default: ~/Downloads)",
-                example="~/Downloads/video_screenshots"
+                default="~/Downloads/video_understanding"
             ),
             Param(
                 name="max_tokens",
-                type="int",
+                type="number",
+                description="Maximum tokens in OpenAI response",
                 required=False,
-                description="Maximum number of tokens in the response",
-                example="2000"
-            ),
-        ]
-
-    def output_spec(self) -> List[Param]:
-        """Define the output parameters for video understanding."""
-        return [
-            Param(
-                name="image_prompts",
-                type="List[str]",
-                required=True,
-                description="List of image generation prompts for each scene",
-                example='["A cat sitting on a windowsill in golden hour light"]'
-            ),
-            Param(
-                name="video_prompts",
-                type="List[str]",
-                required=True,
-                description="List of video generation prompts for each scene",
-                example='["The cat jumps down and walks across the room"]'
-            ),
-            Param(
-                name="scene_descriptions",
-                type="List[str]",
-                required=True,
-                description="Descriptions of each scene extracted from the video",
-                example='["Scene 1: Cat on windowsill"]'
-            ),
-            Param(
-                name="screenshot_paths",
-                type="List[str]",
-                required=True,
-                description="Paths to the extracted screenshot files",
-                example='["/path/to/screenshot_1.jpg"]'
-            ),
-            Param(
-                name="metadata",
-                type="Dict[str, str]",
-                required=False,
-                description="Additional metadata about the analysis",
-                example='{"model": "gpt-4o-mini", "total_scenes": "5"}'
+                default=2000
             )
         ]
 
-    def _extract_screenshots(self, video_path: str, interval: float, output_dir: str) -> List[ScreenshotInfo]:
+    def output_spec(self) -> List[Param]:
+        """
+        Define the output specification for the tool.
+        
+        Returns:
+            List[Param]: List of output parameters
+        """
+        return [
+            Param(
+                name="image_prompts",
+                type="array",
+                description="List of image generation prompts for each scene"
+            ),
+            Param(
+                name="video_prompts",
+                type="array",
+                description="List of video generation prompts for each scene"
+            ),
+            Param(
+                name="scene_descriptions",
+                type="array",
+                description="List of scene descriptions"
+            ),
+            Param(
+                name="screenshot_paths",
+                type="array",
+                description="List of paths to extracted screenshots"
+            ),
+            Param(
+                name="metadata",
+                type="object",
+                description="Additional metadata about the analysis"
+            )
+        ]
+
+    def _extract_screenshots(
+        self, 
+        video_path: str, 
+        extraction_mode: str = "interval",
+        interval: float = 10.0,
+        keyframe_threshold: float = 30.0,
+        min_interval_frames: int = 30,
+        output_dir: str = "~/Downloads/video_understanding"
+    ) -> List[ScreenshotInfo]:
         """
         Extract screenshots from the video using video_utils.
         
         Args:
             video_path (str): Path to the video file
-            interval (float): Time interval between screenshots
+            extraction_mode (str): 'interval' or 'keyframe'
+            interval (float): Time interval between screenshots (for interval mode)
+            keyframe_threshold (float): Threshold for keyframe detection (for keyframe mode)
+            min_interval_frames (int): Minimum frames between keyframes (for keyframe mode)
             output_dir (str): Directory to save screenshots
             
         Returns:
             List[ScreenshotInfo]: List of screenshot information
         """
         try:
-            screenshots = extract_screenshots(
-                video_path=video_path,
-                interval_seconds=interval,
-                output_dir=output_dir,
-                filename_prefix="video_scene"
-            )
-            return screenshots
+            if extraction_mode.lower() == "keyframe":
+                # Use keyframe extraction
+                key_frames = extract_key_frames(
+                    video_path=video_path,
+                    threshold=keyframe_threshold,
+                    min_interval_frames=min_interval_frames,
+                    output_dir=output_dir,
+                    filename_prefix="video_scene"
+                )
+                
+                # Convert KeyFrameInfo to ScreenshotInfo for compatibility
+                screenshots = []
+                for key_frame in key_frames:
+                    screenshot = ScreenshotInfo(
+                        frame_number=key_frame.frame_number,
+                        timestamp=key_frame.timestamp,
+                        timestamp_str=key_frame.timestamp_str,
+                        file_path=key_frame.file_path
+                    )
+                    screenshots.append(screenshot)
+                
+                print(f"🔍 Extracted {len(screenshots)} key frames using scene change detection")
+                return screenshots
+            else:
+                # Use interval-based extraction (default)
+                screenshots = extract_screenshots(
+                    video_path=video_path,
+                    interval_seconds=interval,
+                    output_dir=output_dir,
+                    filename_prefix="video_scene"
+                )
+                
+                print(f"📸 Extracted {len(screenshots)} screenshots at {interval}s intervals")
+                return screenshots
+                
         except Exception as e:
             raise RuntimeError(f"Failed to extract screenshots from video: {e}")
 
@@ -277,8 +332,11 @@ class VideoUnderstandingTool(BaseTool):
             input (dict): Dictionary containing:
                 - video_path: Path to the video file
                 - user_preference: User's preference for image generation (optional)
-                - screenshot_interval: Time interval between screenshots (optional, default: 10.0)
-                - output_dir: Directory to save screenshots (optional, default: ~/Downloads)
+                - extraction_mode: 'interval' or 'keyframe' (optional, default: 'interval')
+                - screenshot_interval: Time interval between screenshots (for interval mode, optional, default: 10.0)
+                - keyframe_threshold: Threshold for keyframe detection (for keyframe mode, optional, default: 30.0)
+                - min_interval_frames: Minimum frames between keyframes (for keyframe mode, optional, default: 30)
+                - output_dir: Directory to save screenshots (optional, default: ~/Downloads/video_understanding)
                 - max_tokens: Maximum tokens in response (optional, default: 2000)
         
         Returns:
@@ -292,7 +350,10 @@ class VideoUnderstandingTool(BaseTool):
         # Extract parameters
         video_path = input.get("video_path")
         user_preference = input.get("user_preference", "Create detailed, cinematic image generation prompts")
+        extraction_mode = input.get("extraction_mode", "interval")
         screenshot_interval = input.get("screenshot_interval", 10.0)
+        keyframe_threshold = input.get("keyframe_threshold", 30.0)
+        min_interval_frames = input.get("min_interval_frames", 30)
         output_dir = input.get("output_dir", "~/Downloads/video_understanding")
         max_tokens = input.get("max_tokens", 2000)
         
@@ -303,7 +364,14 @@ class VideoUnderstandingTool(BaseTool):
             raise FileNotFoundError(f"Video file not found: {video_path}")
         
         # Extract screenshots from video
-        screenshots = self._extract_screenshots(video_path, screenshot_interval, output_dir)
+        screenshots = self._extract_screenshots(
+            video_path=video_path,
+            extraction_mode=extraction_mode,
+            interval=screenshot_interval,
+            keyframe_threshold=keyframe_threshold,
+            min_interval_frames=min_interval_frames,
+            output_dir=output_dir
+        )
         
         if not screenshots:
             raise RuntimeError("No screenshots were extracted from the video")
@@ -336,11 +404,22 @@ class VideoUnderstandingTool(BaseTool):
         # Prepare metadata
         metadata = {
             "model": self.model,
+            "extraction_mode": extraction_mode,
             "total_scenes": str(len(screenshots)),
             "video_duration": f"{screenshots[-1].timestamp:.1f}s" if screenshots else "0s",
-            "screenshot_interval": f"{screenshot_interval}s",
             "output_directory": output_dir
         }
+        
+        # Add mode-specific metadata
+        if extraction_mode.lower() == "keyframe":
+            metadata.update({
+                "keyframe_threshold": str(keyframe_threshold),
+                "min_interval_frames": str(min_interval_frames)
+            })
+        else:
+            metadata.update({
+                "screenshot_interval": f"{screenshot_interval}s"
+            })
         
         return {
             "image_prompts": image_prompts,
