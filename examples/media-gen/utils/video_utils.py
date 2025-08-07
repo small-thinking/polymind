@@ -4,13 +4,14 @@ Simple video screenshot utility.
 Extract screenshots from video files at regular time intervals.
 """
 
-import cv2
-import os
-from pathlib import Path
-from typing import List, Optional
 import logging
+import os
 from dataclasses import dataclass
 from datetime import timedelta
+from typing import List, Optional
+
+import cv2
+from pathlib import Path
 
 logger = logging.getLogger(__name__)
 
